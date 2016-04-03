@@ -1,0 +1,26 @@
+inipol.002
+400			output file number
+200			expperiment duration
+0.5			output file interval !dtoutAni
+2.0			dtoutAni_draw
+10			contact search interval !ndtsrc
+0.2			dtoutInfo
+200			dtoutfile
+100			sampling_frequency(fs)
+9999.0		fdbgbeg
+0.0			fdbgint
+4			nproc
+-9.8		gravity
+0.7			mubed
+0.1			mus
+0.1			restitution
+3			bound_type 1-刚性，2-弹性，3-周期, 4-自由
+0.20			waterline
+0.30			watervel
+0.0			windvel
+0.2			drag_force_coef(cdf)
+0.14			drag_moment_coef(cdm)
+0.15		added_mass_coef
+0			isbonding
+2e-2			n_strength
+1e-2			t_strength
