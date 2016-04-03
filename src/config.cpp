@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "config.h"
-#include "common.h"
+#include "../include/config.h"
+#include "../include/common.h"
 #include <fstream>
 
 std::map<std::string, std::string> confin;
