@@ -55,6 +55,7 @@ std::size_t read_conf(const char *fstr, std::map<std::string, std::string> &con)
         con[arg] = val;
         ++count;
     }
+    inf.close();
     return count;
 }
 
@@ -67,7 +68,7 @@ bool ini_conf(const char *filepath)
         runError("Config parameter", "dPath");
     std::size_t icont = inconf(confin, confis, confi);
     std::size_t dcont = inconf(confin, confds, confd);
-    if (acont == icont + dcont)
+    if (acont == icont + dcont + 1)
         return true;
     else
         return false;
