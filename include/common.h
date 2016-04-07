@@ -10,7 +10,8 @@
 #define COMMON_H
 #include <stdexcept>
 #include <string>
-#include <fstream>
+#include <istream>
+#include <ostream>
 
 
 /******Const value*****/
@@ -28,7 +29,8 @@ template <typename T> class XY {
 public:
     XY() = default;
     XY(T i, T j) : x(i), y(j) {}
-    std::ifstream& asign(std::ifstream &inf) { inf >> x >> y; return inf; }
+    std::istream& asign(std::istream &inf) { inf >> x >> y; return inf; }
+    std::ostream& print(std::ostream &os) const {os << x << "\t" << y; return os;}
 
     T x;
     T y;
@@ -38,7 +40,8 @@ template <typename T> class XYZ : public XY<T> {
 public:
     XYZ() = default;
     XYZ(T i, T j, T k) : XY<T>(i, j), z(k) {}
-    std::ifstream& asign(std::ifstream &inf) { inf >> this->x >> this->y >> z; return inf; }
+    std::istream& asign(std::istream &inf) { inf >> this->x >> this->y >> z; return inf; }
+    std::ostream& print(std::ostream &os) const {os << this->x << "\t" << this->y << "\t" << z; return os;}
 
     T z;
 };
@@ -47,7 +50,8 @@ template<typename T> class Felement : public XYZ<T> {
 public:
     Felement() = default;
     Felement(T i, T j, T k, T l) : XYZ<T>(i, j, k), w(l) {}
-    std::ifstream& asign(std::ifstream &inf) { inf >> XYZ<T>::x >> XYZ<T>::y >> XYZ<T>::z >> w; return inf; }
+    std::istream& asign(std::istream &inf) { inf >> XYZ<T>::x >> XYZ<T>::y >> XYZ<T>::z >> w; return inf; }
+    std::ostream& print(std::ostream &os) const {os << this->x << "\t" << this->y << "\t" << this->z << "\t" << w; return os;}
 
     T w;
 };

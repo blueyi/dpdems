@@ -10,11 +10,13 @@
 #include "common.h"
 #include <memory>
 #include <vector>
+#include <fstream>
 
 //暂时只做数据保存
 class Particle {
 public:
     Particle(std::ifstream &);
+    void print(std::ostream &) const;
 
     XYZ<double> xyz{0.0, 0.0, 0.0};
     XYZ<double> v{0.0, 0.0, 0.0};
