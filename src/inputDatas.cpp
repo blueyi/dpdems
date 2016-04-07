@@ -39,6 +39,8 @@ Particle::Particle(std::ifstream &infile)
         std::string line;
         std::vector<int> tempvec;
         if (getline(infile, line)) {
+            while (line.empty())
+                getline(infile, line);
             int tmpf, tmpi;
             std::istringstream ist(line);
             ist >> tmpf;
@@ -61,10 +63,10 @@ void Particle::print(std::ostream &os) const
     ip.print(os) << std::endl;
     r.print(os) << std::endl;
     n.print(os) << std::endl;
-    for (auto r : *rxb) 
-        r.print(os)  << std::endl;
-    for (auto rp : *rxbp) 
-        rp.print(os)  << std::endl;
+    for (auto r = (*rxb).begin(), rp = (*rxbp).begin(); r != (*rxb).end(); ++r, ++rp) {
+        (*r).print(os)  << std::endl;
+        (*rp).print(os)  << std::endl;
+    }
     for (auto e : *edge) 
         e.print(os)  << std::endl;
     for (auto s : *surf) {
