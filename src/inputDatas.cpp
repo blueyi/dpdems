@@ -19,14 +19,14 @@ Particle::Particle(std::ifstream &infile)
     ip.asign(infile);
     r.asign(infile);
     n.asign(infile);
-    rxb = std::make_shared<std::vector<XYZ<double>>>();
-    rxbp = std::make_shared<std::vector<XYZ<double>>>();
+    rb = std::make_shared<std::vector<XYZ<double>>>();
+    rbp = std::make_shared<std::vector<XYZ<double>>>();
     for (std::size_t i = 0; i < n.x; ++i) {
         XYZ<double> temp;
         temp.asign(infile);
-        rxb->push_back(temp);
+        rb->push_back(temp);
         temp.asign(infile);
-        rxbp->push_back(temp);
+        rbp->push_back(temp);
     }
     edge = std::make_shared<std::vector<XY<int>>>();
     for (std::size_t i = 0; i < n.y; ++i) {
@@ -53,7 +53,7 @@ Particle::Particle(std::ifstream &infile)
     }
 }
 
-void Particle::print(std::ostream &os) const
+std::ostream& Particle::print(std::ostream &os) const
 {
     xyz.print(os) << std::endl;
     v.print(os) << std::endl;
@@ -63,7 +63,7 @@ void Particle::print(std::ostream &os) const
     ip.print(os) << std::endl;
     r.print(os) << std::endl;
     n.print(os) << std::endl;
-    for (auto r = (*rxb).begin(), rp = (*rxbp).begin(); r != (*rxb).end(); ++r, ++rp) {
+    for (auto r = (*rb).begin(), rp = (*rbp).begin(); r != (*rb).end(); ++r, ++rp) {
         (*r).print(os)  << std::endl;
         (*rp).print(os)  << std::endl;
     }
@@ -75,5 +75,6 @@ void Particle::print(std::ostream &os) const
             os << i << "\t";
         os << std::endl;
     }
+    return os;
 }
 

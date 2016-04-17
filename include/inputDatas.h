@@ -12,11 +12,20 @@
 #include <vector>
 #include <fstream>
 
-//暂时只做数据保存
-class Particle {
+class BParticle {
 public:
+    BParticle() = default;
+    virtual std::ostream& print(std::ostream &) const = 0;
+    virtual ~BParticle() = default;
+};
+
+//暂时只做数据保存
+class Particle : public BParticle {
+public:
+    Particle() = default;
     Particle(std::ifstream &);
-    void print(std::ostream &) const;
+    std::ostream& print(std::ostream &) const override;
+    ~Particle() = default;
 
     XYZ<double> xyz{0.0, 0.0, 0.0};
     XYZ<double> v{0.0, 0.0, 0.0};
@@ -26,8 +35,8 @@ public:
     XYZ<double> ip{0.0, 0.0, 0.0};
     XY<double> r{0.0, 0.0};
     XYZ<std::size_t> n{0, 0, 0};
-    std::shared_ptr<std::vector<XYZ<double>>> rxb;
-    std::shared_ptr<std::vector<XYZ<double>>> rxbp;
+    std::shared_ptr<std::vector<XYZ<double>>> rb;
+    std::shared_ptr<std::vector<XYZ<double>>> rbp;
     std::shared_ptr<std::vector<XY<int>>> edge;
     std::shared_ptr<std::vector<std::vector<int>>> surf;
 };

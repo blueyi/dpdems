@@ -10,7 +10,7 @@
 
 int main()
 {
-    if (ini_conf("../misc/inp_new.txt"))
+    if (ini_conf("inp_new.txt"))
         std::cout << "Success" << std::endl;
     else 
         std::cout << "ini_conf error!" << std::endl;

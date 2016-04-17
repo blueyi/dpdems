@@ -29,8 +29,9 @@ template <typename T> class XY {
 public:
     XY() = default;
     XY(T i, T j) : x(i), y(j) {}
-    std::istream& asign(std::istream &inf) { inf >> x >> y; return inf; }
-    std::ostream& print(std::ostream &os) const {os << x << "\t" << y; return os;}
+    virtual std::istream& asign(std::istream &inf) { inf >> x >> y; return inf; }
+    virtual std::ostream& print(std::ostream &os) const {os << x << "\t" << y; return os;}
+    virtual ~XY() = default;
 
     T x;
     T y;
@@ -40,8 +41,9 @@ template <typename T> class XYZ : public XY<T> {
 public:
     XYZ() = default;
     XYZ(T i, T j, T k) : XY<T>(i, j), z(k) {}
-    std::istream& asign(std::istream &inf) { inf >> this->x >> this->y >> z; return inf; }
-    std::ostream& print(std::ostream &os) const {os << this->x << "\t" << this->y << "\t" << z; return os;}
+    std::istream& asign(std::istream &inf) override { inf >> this->x >> this->y >> z; return inf; }
+    std::ostream& print(std::ostream &os) const override {os << this->x << "\t" << this->y << "\t" << z; return os;}
+    virtual ~XYZ() = default;
 
     T z;
 };
@@ -50,14 +52,15 @@ template<typename T> class Felement : public XYZ<T> {
 public:
     Felement() = default;
     Felement(T i, T j, T k, T l) : XYZ<T>(i, j, k), w(l) {}
-    std::istream& asign(std::istream &inf) { inf >> XYZ<T>::x >> XYZ<T>::y >> XYZ<T>::z >> w; return inf; }
-    std::ostream& print(std::ostream &os) const {os << this->x << "\t" << this->y << "\t" << this->z << "\t" << w; return os;}
+    std::istream& asign(std::istream &inf) override { inf >> XYZ<T>::x >> XYZ<T>::y >> XYZ<T>::z >> w; return inf; }
+    std::ostream& print(std::ostream &os) const override {os << this->x << "\t" << this->y << "\t" << this->z << "\t" << w; return os;}
+    virtual ~Felement() = default;
 
     T w;
 };
 
 /******Function*****/
 
-extern void runError(const std::string &err, const std::string &msg);
+void runError(const std::string &err, const std::string &msg);
 
 #endif /* !COMMON_H */
