@@ -7,6 +7,7 @@
 
 #include "../include/inputDatas.h"
 #include <iostream>
+#include <fstream>
 
 int main(void)
 {

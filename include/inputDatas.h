@@ -10,7 +10,6 @@
 #include "common.h"
 #include <memory>
 #include <vector>
-#include <fstream>
 
 class BParticle {
 public:
@@ -23,7 +22,8 @@ public:
 class Particle : public BParticle {
 public:
     Particle() = default;
-    Particle(std::ifstream &);
+    Particle(std::istream &);
+    std::istream& asign(std::istream &);
     std::ostream& print(std::ostream &) const override;
     ~Particle() = default;
 
@@ -39,6 +39,20 @@ public:
     std::shared_ptr<std::vector<XYZ<double>>> rbp;
     std::shared_ptr<std::vector<XY<int>>> edge;
     std::shared_ptr<std::vector<std::vector<int>>> surf;
+};
+
+class ParticlePtr : public BParticle {
+public:
+    ParticlePtr() = default;
+    ParticlePtr(const Particle &);
+    ParticlePtr& operator=(const Particle);
+    ParticlePtr& operator=(const ParticlePtr);
+    void hit(ParticlePtr &);
+    std::ostream& print(std::ostream &) const override;
+
+protected:
+    XYZ<double> xyz{0.0, 0.0, 0.0};
+    XYZ<double> v{0.0, 0.0, 0.0};
 };
 
 #endif /* !INPUTDATAS_H */

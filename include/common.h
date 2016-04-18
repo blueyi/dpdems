@@ -29,6 +29,7 @@ template <typename T> class XY {
 public:
     XY() = default;
     XY(T i, T j) : x(i), y(j) {}
+    XY<T>& operator=(const XY<T>);
     virtual std::istream& asign(std::istream &inf) { inf >> x >> y; return inf; }
     virtual std::ostream& print(std::ostream &os) const {os << x << "\t" << y; return os;}
     virtual ~XY() = default;
@@ -41,6 +42,7 @@ template <typename T> class XYZ : public XY<T> {
 public:
     XYZ() = default;
     XYZ(T i, T j, T k) : XY<T>(i, j), z(k) {}
+    XYZ<T>& operator=(const XYZ<T>);
     std::istream& asign(std::istream &inf) override { inf >> this->x >> this->y >> z; return inf; }
     std::ostream& print(std::ostream &os) const override {os << this->x << "\t" << this->y << "\t" << z; return os;}
     virtual ~XYZ() = default;
@@ -60,6 +62,22 @@ public:
 };
 
 /******Function*****/
+
+
+template <typename T> XY<T>& XY<T>::operator=(const XY<T> r)
+{
+    this->x = r.x;
+    this->y = r.y;
+    return *this;
+}
+
+template <typename T> XYZ<T>& XYZ<T>::operator=(const XYZ<T> r)
+{
+    this->x = r.x;
+    this->y = r.y;
+    this->z = r.z;
+    return *this;
+}
 
 void runError(const std::string &err, const std::string &msg);
 

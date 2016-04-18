@@ -50,7 +50,7 @@ std::size_t read_conf(const char *fstr, std::map<std::string, std::string> &con)
     }
     std::string line, val, arg;
     while (getline(inf, line)) {
-        while (line.empty())
+        while (line.empty() || line == "\r")
             getline(inf, line);
         std::istringstream is(line);
         is >> val >> arg;

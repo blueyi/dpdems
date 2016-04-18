@@ -10,7 +10,10 @@
 
 int main()
 {
-    XYZ<double> vec(23, 22, 0.1);
+    XYZ<double> vec1(23, 22, 0.1);
+    XYZ<double> vec;
+    vec = vec1;
+    vec = vec;
     std::cout << vec.x << " " << vec.y << " " << vec.z << std::endl;
     return 0;
 }

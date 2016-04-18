@@ -9,7 +9,7 @@
 #include <sstream>
 
 
-Particle::Particle(std::ifstream &infile)
+Particle::Particle(std::istream &infile)
 {
     xyz.asign(infile);
     v.asign(infile);
@@ -39,7 +39,7 @@ Particle::Particle(std::ifstream &infile)
         std::string line;
         std::vector<int> tempvec;
         if (getline(infile, line)) {
-            while (line.empty())
+            while (line.empty() || line == "\r")
                 getline(infile, line);
             int tmpf, tmpi;
             std::istringstream ist(line);
@@ -51,6 +51,51 @@ Particle::Particle(std::ifstream &infile)
         }
         surf->push_back(tempvec);
     }
+}
+
+std::istream& Particle::asign(std::istream &infile)
+{
+    xyz.asign(infile);
+    v.asign(infile);
+    q.asign(infile);
+    w.asign(infile);
+    infile >> mass;
+    ip.asign(infile);
+    r.asign(infile);
+    n.asign(infile);
+    rb = std::make_shared<std::vector<XYZ<double>>>();
+    rbp = std::make_shared<std::vector<XYZ<double>>>();
+    for (std::size_t i = 0; i < n.x; ++i) {
+        XYZ<double> temp;
+        temp.asign(infile);
+        rb->push_back(temp);
+        temp.asign(infile);
+        rbp->push_back(temp);
+    }
+    edge = std::make_shared<std::vector<XY<int>>>();
+    for (std::size_t i = 0; i < n.y; ++i) {
+        XY<int> temp;
+        temp.asign(infile);
+        edge->push_back(temp);
+    }
+    surf = std::make_shared<std::vector<std::vector<int>>>();
+    for (std::size_t i = 0; i < n.z; ++i) {
+        std::string line;
+        std::vector<int> tempvec;
+        if (getline(infile, line)) {
+            while (line.empty() || line == "\r")
+                getline(infile, line);
+            int tmpf, tmpi;
+            std::istringstream ist(line);
+            ist >> tmpf;
+            while (tmpf-- > 0) {
+                ist >> tmpi;
+                tempvec.push_back(tmpi);
+            }
+        }
+        surf->push_back(tempvec);
+    }
+    return infile;
 }
 
 std::ostream& Particle::print(std::ostream &os) const
@@ -78,3 +123,31 @@ std::ostream& Particle::print(std::ostream &os) const
     return os;
 }
 
+ParticlePtr::ParticlePtr(const Particle &part)
+{
+    xyz = part.xyz;
+    v = part.v;
+}
+
+ParticlePtr& ParticlePtr::operator=(const Particle par)
+{
+    this->xyz = par.xyz;
+    this->v = par.v;
+}
+
+ParticlePtr& ParticlePtr::operator=(const ParticlePtr pptr)
+{
+    this->xyz = pptr.xyz;
+    this->v = pptr.v;
+}
+
+std::ostream& ParticlePtr::print(std::ostream &os) const 
+{
+    xyz.print(os) << std::endl;
+    v.print(os) << std::endl;
+}
+
+void ParticlePtr::hit(ParticlePtr &pb)
+{
+    
+}
