@@ -12,6 +12,7 @@
 #include <string>
 #include <istream>
 #include <ostream>
+#include <cmath>
 
 
 /******Const value*****/
@@ -80,5 +81,17 @@ template <typename T> XYZ<T>& XYZ<T>::operator=(const XYZ<T> r)
 }
 
 void runError(const std::string &err, const std::string &msg);
+
+template <typename T> T sqrthree(T a, T b, T c)
+{
+    return std::sqrt(a * a, b * b, c * c);
+}
+
+template <typename T> void swapxyz(XYZ<T> &a, XYZ<T> &b)
+{
+    XYZ<T> t = a;
+    a = b;
+    b = t;
+}
 
 #endif /* !COMMON_H */

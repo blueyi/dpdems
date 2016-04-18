@@ -32,13 +32,20 @@ int main(int argc, char **argv)
     inf >> particle_num >> ttime0 >> dt >> elasticmod >>
         poissonp >> rho >> xlen >> ylen >> zlen;
     std::vector<Particle> pv(particle_num);
+    std::vector<ParticlePtr> ppv(particle_num);
     for (auto &p : pv) {
         p.asign(inf);
     }
     inf.close();
-    for (auto p : pv) {
-        p.print(std::cout);
+    auto ppb = ppv.begin();
+    for (auto pb = pv.begin(); pb != pv.end(); ++pb, ++ppb) {
+        *ppb = *pb;
     }
+    /*
+    for (auto pp : ppv) {
+        pp.print(std::cout);
+    }
+    */
     return 0;
 }
 

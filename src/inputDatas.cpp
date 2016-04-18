@@ -123,31 +123,34 @@ std::ostream& Particle::print(std::ostream &os) const
     return os;
 }
 
-ParticlePtr::ParticlePtr(const Particle &part)
+ParticlePtr::ParticlePtr(const Particle &part, double scal)
 {
     xyz = part.xyz;
     v = part.v;
 }
 
-ParticlePtr& ParticlePtr::operator=(const Particle par)
+ParticlePtr& ParticlePtr::asign(const Particle par, double scal)
 {
     this->xyz = par.xyz;
     this->v = par.v;
+    return *this;
 }
 
 ParticlePtr& ParticlePtr::operator=(const ParticlePtr pptr)
 {
     this->xyz = pptr.xyz;
     this->v = pptr.v;
+    return *this;
 }
 
 std::ostream& ParticlePtr::print(std::ostream &os) const 
 {
     xyz.print(os) << std::endl;
     v.print(os) << std::endl;
+    return os;
 }
 
-void ParticlePtr::hit(ParticlePtr &pb)
+void ParticlePtr::hit_v(ParticlePtr &pb)
 {
-    
+    swapxyz(this->xyz, pb.xyz);
 }

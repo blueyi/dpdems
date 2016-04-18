@@ -41,18 +41,21 @@ public:
     std::shared_ptr<std::vector<std::vector<int>>> surf;
 };
 
+class Grid;
+
 class ParticlePtr : public BParticle {
 public:
+    friend class Grid;
     ParticlePtr() = default;
-    ParticlePtr(const Particle &);
-    ParticlePtr& operator=(const Particle);
+    ParticlePtr(const Particle &, double);
+    ParticlePtr& asign(const Particle, double);
     ParticlePtr& operator=(const ParticlePtr);
-    void hit(ParticlePtr &);
+    void hit_v(ParticlePtr &);
     std::ostream& print(std::ostream &) const override;
 
 protected:
-    XYZ<double> xyz{0.0, 0.0, 0.0};
-    XYZ<double> v{0.0, 0.0, 0.0};
+    XYZ<unsigned> xyz{0, 0, 0};
+    XYZ<double> v{0, 0, 0};
 };
 
 #endif /* !INPUTDATAS_H */
