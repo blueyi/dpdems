@@ -8,13 +8,15 @@
 #include "../include/grid.h"
 #include <iostream>
 #include <fstream>
+#include <cctype>
+#include <ctime>
 
-const int grid_minx = -100;
-const int grid_miny = -100;
-const int grid_minz = -100;
-const int grid_maxx = 100;
-const int grid_maxy = 100;
-const int grid_maxz = 100;
+//const int grid_minx = -50;
+//const int grid_miny = -50;
+//const int grid_minz = -50;
+//const int grid_maxx = 50;
+//const int grid_maxy = 50;
+//const int grid_maxz = 50;
 
 unsigned hit(std::vector<ParticlePtr> &, Grid &, unsigned long);
 
@@ -37,9 +39,51 @@ int main(int argc, char **argv)
       return 0;
    }
    unsigned particle_num = 0;
-   double ttime0, dt, elasticmod, poissonp, rho, xlen, ylen, zlen;
-   inf >> particle_num >> ttime0 >> dt >> elasticmod >>
+   unsigned timestep, maxdim, stepnum;
+   double poissonp, rho, xlen, ylen, zlen;
+   inf >> particle_num >> timestep >> maxdim >> stepnum >>
       poissonp >> rho >> xlen >> ylen >> zlen;
+
+   if ( 3 > maxdim) {
+      std::cout << "maxdim too small" << std::endl;
+      std::cout << "Execute terminate!" << std::endl;
+      return 0;
+   }
+
+   if (10000000 < timestep * stepnum) {
+      std::string str;
+      std::cout << "timestep * stepnum too big, it may excute too long, contine? Y/N: " << std::endl;
+      std::cin>> str;
+      for (auto &c : str) {
+         c = tolower(c);
+      }
+      if (str[0] != 'y') {
+         std::cout << "Execute terminate!" << std::endl;
+         return 0;
+      }
+   }
+
+   if (maxdim >= 500) {
+      std::string str;
+      std::cout << "You need at least 6.5G memory, contine? Y/N: " << std::endl;
+      std::cin>> str;
+      for (auto &c : str) {
+         c = tolower(c);
+      }
+      if (str[0] != 'y') {
+         std::cout << "Execute terminate!" << std::endl;
+         return 0;
+      }
+   }
+
+   std::cout << "Particle Num: " << particle_num << std::endl;
+   std::cout << "Time step: " << timestep << std::endl;
+   std::cout << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   std::cout << "Time step num: " << stepnum << std::endl;
+   std::cout << std::endl << "************Start*************" << std::endl;
+   clock_t t;
+   t = clock();
+
    std::vector<Particle> pv(particle_num);
    for (auto &p : pv) {
       p.asign(inf);
@@ -57,6 +101,10 @@ int main(int argc, char **argv)
       if (maxz < fabs(p.xyz.z))
          maxz = fabs(p.xyz.z);
    }
+
+int grid_minx, grid_miny, grid_minz, grid_maxx, grid_maxy, grid_maxz;
+grid_minx = grid_miny = grid_minz = grid_maxx = grid_maxy = grid_maxz = maxdim;
+
    XYZ<int> grid_limit(grid_maxx - 1, grid_maxy - 1, grid_maxz - 1);
    double scal_x, scal_y, scal_z;
    scal_x = maxx == 0.0 ? 0.0 : (double)grid_limit.x / maxx;
@@ -73,6 +121,8 @@ int main(int argc, char **argv)
    for (auto pb = pv.begin(); pb != pv.end(); ++pb, ++ppb) {
       ppb->asign(*pb, scal_factor);
    }
+   (ppv.begin() + 1)->modify_cor(1, 1, 4);
+
 //   for (auto pp : ppv) {
 //      std::cout << "*" << pp.no() << "*" << std::endl;
 //      pp.print(std::cout);
@@ -86,15 +136,19 @@ int main(int argc, char **argv)
    Grid grid(gdimx, gdimy, gdimz, offset);
    grid.fill(ppv);
 
-   unsigned hit_times = hit(ppv, grid, 1234);
-   std::cout << "hit_times: " << hit_times << std::endl;
+
+   unsigned hit_times = hit(ppv, grid, timestep * stepnum);
+   t = clock() - t;
+   double seconds = (double)t / CLOCKS_PER_SEC;
+   std::cout << "Total time consumed: " << seconds << " seconds" << std::endl;
+   std::cout << std::endl << "************End*************" << std::endl;
 
 //   for (auto pp : ppv) {
 //      std::cout << "*" << pp.no() << "*" << std::endl;
 //      pp.print(std::cout);
 //   }
 
-   std::cout << "Unnull: " << grid.unNullPtrNum() << std::endl;
+//   std::cout << "Unnull: " << grid.unNullPtrNum() << std::endl;
 
 
    //std::cout << maxx << " " << maxy << " " << maxz << std::endl;
@@ -106,9 +160,12 @@ int main(int argc, char **argv)
 
 unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time)
 {
-   unsigned hit_times = 0;
+   unsigned total_hit = 0;
    for (auto &pp : ppv) {
-      hit_times += pp.move(grid, time);
+      unsigned hit_times = pp.move(grid, time);
+      total_hit += hit_times;
+      std::cout << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
+      std::cout << "Total hit times: " << total_hit << std::endl;
    }
-   return hit_times;
+   return total_hit;
 }

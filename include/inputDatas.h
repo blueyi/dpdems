@@ -52,6 +52,8 @@ public:
     ParticlePtr(const Particle &, const XYZ<double> &);
     unsigned no() {return num;}
     XYZ<int>  cor() {return xyz;}
+    void modify_cor(int x, int y, int z);
+    void modify_v(double, double, double);
     ParticlePtr& asign(const Particle &, const XYZ<double> &);
     ParticlePtr& operator=(const ParticlePtr);
     void hit_v(ParticlePtr *);

@@ -55,15 +55,18 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
         y += pp.v.y;
         z += pp.v.z;
         //简化考虑越界问题，速度为矢量
-        if (x >= gdimx || x < 0) {
+        while (x >= gdimx || x < 0) {
+            ++hit_num;
             x -= pp.v.x;
             pp.v.x = - pp.v.x;
         }
-        if (y >= gdimy || y < 0) {
+        while (y >= gdimy || y < 0) {
+            ++hit_num;
             y -= pp.v.y;
             pp.v.y = - pp.v.y;
         }
-        if (z >= gdimz || z < 0) {
+        while (z >= gdimz || z < 0) {
+            ++hit_num;
             z -= pp.v.z;
             pp.v.z = - pp.v.z;
         }
@@ -84,24 +87,29 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
             (*gridptr)[tx][ty][tz] = nullptr;
             while ((*gridptr)[tp.x][tp.y][tp.z] != nullptr) {
                 auto ttptr = (*gridptr)[tp.x][tp.y][tp.z];
-                tp.x += pp.v.x;
-                tp.y += pp.v.y;
-                tp.z += pp.v.z;
-                if (tp.x >= gdimx || tp.x < 0) {
+                tp.x += tpptr->v.x;
+                tp.y += tpptr->v.y;
+                tp.z += tpptr->v.z;
+                while (tp.x >= gdimx || tp.x < 0) {
                     tp.x -= pp.v.x;
                     pp.v.x = - pp.v.x;
+                    hit_num++;
                 }
-                if (tp.y >= gdimy || tp.y < 0) {
+                while (tp.y >= gdimy || tp.y < 0) {
                     tp.y -= pp.v.y;
                     pp.v.y = - pp.v.y;
+                    hit_num++;
                 }
-                if (tp.z >= gdimz || tp.z < 0) {
+                while (tp.z >= gdimz || tp.z < 0) {
                     tp.z -= pp.v.z;
                     pp.v.z = - pp.v.z;
+                    hit_num++;
                 }
-                auto ttptrr = (*gridptr)[tp.x][tp.y][tp.z];
-                ttptrr->hit_v(ttptr);
-                hit_num++;
+                if ((*gridptr)[tp.x][tp.y][tp.z] != nullptr) {
+                    auto ttptrr = (*gridptr)[tp.x][tp.y][tp.z];
+                    ttptrr->hit_v(ttptr);
+                    hit_num++;
+                }
             }
 
             (*gridptr)[tp.x][tp.y][tp.z] = tpptr;

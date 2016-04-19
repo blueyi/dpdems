@@ -163,3 +163,12 @@ unsigned ParticlePtr::move(Grid &grid, unsigned long time)
         return 0;
     return grid.update_position(*this, time);
 }
+
+void ParticlePtr::modify_cor(int x, int y, int z)
+{
+    xyz.asign(x, y, z);
+}
+void ParticlePtr::modify_v(double x, double y, double z)
+{
+    v.asign(x, y, z);
+}
