@@ -23,7 +23,7 @@ if compile_inputdata == 0 and compile_common == 0 and compile_search == 0 and co
     print('link success!')
     isrun = input('Run? y or n : ')
     if isrun == 'y':
-      os.system('main.exe')
+      os.system('./main.exe')
 else :
   print('compile error')
 

@@ -20,7 +20,8 @@ public:
     unsigned checkPPNo(const XYZ<int> &);
     bool isInGrid(const XYZ<int> &);
     bool isInGrid(const XYZ<unsigned> &);
-    void update_position(ParticlePtr &pp, const XYZ<int> &end);
+    unsigned unNullPtrNum();
+    unsigned update_position(ParticlePtr &pp, unsigned long time);
 
     std::shared_ptr<std::vector<std::vector<std::vector<ParticlePtr*>>>> gridptr;
 

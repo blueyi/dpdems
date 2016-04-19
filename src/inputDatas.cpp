@@ -150,20 +150,16 @@ std::ostream& ParticlePtr::print(std::ostream &os) const
     return os;
 }
 
-void ParticlePtr::hit_v(ParticlePtr &pb)
+void ParticlePtr::hit_v(ParticlePtr *pb)
 {
-    swapxyz(this->xyz, pb.xyz);
+    auto t = this->v;
+    this->v = pb->v;
+    pb->v = t;
 }
 
-bool ParticlePtr::move(Grid &grid, unsigned long time)
+unsigned ParticlePtr::move(Grid &grid, unsigned long time)
 {
     if (v.iszero())
-        return false;
-    int lenx = v.x * time;
-    int leny = v.y * time;
-    int lenz = v.z * time;
-    XYZ<int> move_dis(lenx, leny, lenz);
-    grid.update_position(*this, move_dis);
-
-    return true;
+        return 0;
+    return grid.update_position(*this, time);
 }

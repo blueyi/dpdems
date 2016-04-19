@@ -54,8 +54,8 @@ public:
     XYZ<int>  cor() {return xyz;}
     ParticlePtr& asign(const Particle &, const XYZ<double> &);
     ParticlePtr& operator=(const ParticlePtr);
-    void hit_v(ParticlePtr &);
-    bool move(Grid &, unsigned long);
+    void hit_v(ParticlePtr *);
+    unsigned move(Grid &, unsigned long);
     std::ostream& print(std::ostream &) const override;
 
 protected:
