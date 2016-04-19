@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+#include "../include/grid.h"
 #ifndef INPUTDATAS_H
 #define INPUTDATAS_H
 #include "common.h"
@@ -43,19 +44,24 @@ public:
 
 class Grid;
 
+static unsigned static_no = 0;
 class ParticlePtr : public BParticle {
 public:
     friend class Grid;
-    ParticlePtr() = default;
-    ParticlePtr(const Particle &, double);
-    ParticlePtr& asign(const Particle, double);
+    ParticlePtr() {num = ++static_no;} 
+    ParticlePtr(const Particle &, const XYZ<double> &);
+    unsigned no() {return num;}
+    XYZ<int>  cor() {return xyz;}
+    ParticlePtr& asign(const Particle &, const XYZ<double> &);
     ParticlePtr& operator=(const ParticlePtr);
     void hit_v(ParticlePtr &);
+    bool move(Grid &, unsigned long);
     std::ostream& print(std::ostream &) const override;
 
 protected:
-    XYZ<unsigned> xyz{0, 0, 0};
+    XYZ<int> xyz{0, 0, 0};
     XYZ<double> v{0, 0, 0};
+    unsigned num{0};
 };
 
 #endif /* !INPUTDATAS_H */

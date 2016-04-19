@@ -123,15 +123,15 @@ std::ostream& Particle::print(std::ostream &os) const
     return os;
 }
 
-ParticlePtr::ParticlePtr(const Particle &part, double scal)
+ParticlePtr::ParticlePtr(const Particle &part, const XYZ<double> &scal)
 {
-    xyz = part.xyz;
+    xyz = scale(part.xyz, scal);
     v = part.v;
 }
 
-ParticlePtr& ParticlePtr::asign(const Particle par, double scal)
+ParticlePtr& ParticlePtr::asign(const Particle &par, const XYZ<double> &scal)
 {
-    this->xyz = par.xyz;
+    this->xyz = scale(par.xyz, scal);
     this->v = par.v;
     return *this;
 }
@@ -153,4 +153,17 @@ std::ostream& ParticlePtr::print(std::ostream &os) const
 void ParticlePtr::hit_v(ParticlePtr &pb)
 {
     swapxyz(this->xyz, pb.xyz);
+}
+
+bool ParticlePtr::move(Grid &grid, unsigned long time)
+{
+    if (v.iszero())
+        return false;
+    int lenx = v.x * time;
+    int leny = v.y * time;
+    int lenz = v.z * time;
+    XYZ<int> move_dis(lenx, leny, lenz);
+    grid.update_position(*this, move_dis);
+
+    return true;
 }
