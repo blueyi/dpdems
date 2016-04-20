@@ -46,6 +46,7 @@ public:
     XYZ(T i, T j, T k) : XY<T>(i, j), z(k) {}
     XYZ(const XYZ<T> &t) : XY<T>(t.x, t.y), z(t.z) {}
     XYZ<T>& operator=(const XYZ<T>);
+    bool operator==(const XYZ<T>&);
     std::istream& asign(std::istream &inf) override { inf >> this->x >> this->y >> z; return inf; }
     void asign(T i, T j, T k) 
     {
@@ -54,6 +55,13 @@ public:
         z = k;
     }
     bool iszero() {return (this->x == 0 && this->y == 0 && z == 0);}
+    T sum() {return this->x + this->y + z;}
+    void scale(T fac)
+    { 
+        this->x += fac;
+        this->y += fac;
+        z += fac;
+    }
     std::ostream& print(std::ostream &os) const override {os << this->x << "\t" << this->y << "\t" << z; return os;}
     virtual ~XYZ() = default;
 
@@ -87,6 +95,11 @@ template <typename T> XYZ<T>& XYZ<T>::operator=(const XYZ<T> r)
     this->y = r.y;
     this->z = r.z;
     return *this;
+}
+
+template <typename T> bool XYZ<T>::operator==(const XYZ<T> &r)
+{
+    return (this->x == r.x && this->y == r.y && this->z == r.z);
 }
 
 void runError(const std::string &err, const std::string &msg);

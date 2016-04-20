@@ -12,11 +12,11 @@
 std::map<std::string, std::string> confin;
 
 
-std::string dPath;
-int oFNum, eDuration, cSInterval, dOFile, sFQ, nProc, boundType, isBounding;
+std::string dPath, dataFile;
+int timestep, maxdim, stepnum, oFNum, eDuration, cSInterval, dOFile, sFQ, nProc, boundType, isBounding;
 double oFInterval, dOADraw, dOInfo, fDBeg, fDInt, gravity, mubed, mus, res, waterLine, waterVel, windVel, cDF, cDM, aMCoef, nStrength, tStrength; 
 
-std::vector<int *> confi{&oFNum, &eDuration, &cSInterval, &dOFile, &sFQ, &nProc, &boundType, &isBounding};
+std::vector<int *> confi{&timestep, &maxdim, &stepnum, &oFNum, &eDuration, &cSInterval, &dOFile, &sFQ, &nProc, &boundType, &isBounding};
 std::vector<std::string> confis{"oFNum", "eDuration", "cSInterval", "dOFile", "sFQ", "nProc", "boundType", "isBounding"};
 
 
@@ -62,15 +62,16 @@ std::size_t read_conf(const char *fstr, std::map<std::string, std::string> &con)
 }
 
 
-bool ini_conf(const char *filepath)
+bool ini_conf(const std::string &filepath)
 {
-    std::size_t acont = read_conf(filepath, confin);
-    std::string dPath = confin["dPath"];
+    std::size_t acont = read_conf(filepath.c_str(), confin);
+    dPath = confin["dPath"];
+    dataFile = confin["dataFile"];
     if (dPath.empty())
         runError("Config parameter", "dPath");
     std::size_t icont = inconf(confin, confis, confi);
     std::size_t dcont = inconf(confin, confds, confd);
-    if (acont == icont + dcont + 1)
+    if (acont == icont + dcont + 2)
         return true;
     else
         return false;

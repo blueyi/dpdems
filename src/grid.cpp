@@ -41,6 +41,11 @@ bool Grid::isInGrid(const XYZ<unsigned> &cor)
 
 unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
 {
+    double fix_step_length = 2.0;
+    double fix_speed = 0.2;
+    while ((fabs(pp.v.x) + fabs(pp.v.y) + fabs(pp.v.z)) * fix_step_length < 1.0)
+        fix_step_length += 2.0;
+
     unsigned hit_num = 0;
     unsigned long ttime = time;
     XYZ<int> start = pp.cor();
@@ -51,23 +56,46 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
         unsigned tx = x;
         unsigned ty = y;
         unsigned tz = z;
-        x += pp.v.x;
-        y += pp.v.y;
-        z += pp.v.z;
+        int fx = rint(pp.v.x * fix_step_length);
+        int fy = rint(pp.v.y * fix_step_length);
+        int fz = rint(pp.v.z * fix_step_length);
+
+        x += ((fx < 0 && abs(fx) > x) ? 0 : fx);
+        y += ((fy < 0 && abs(fy) > y) ? 0 : fy);
+        z += ((fz < 0 && abs(fz) > z) ? 0 : fz);
+
         //简化考虑越界问题，速度为矢量
-        while (x >= gdimx || x < 0) {
+        if (x >= gdimx || x < 0) {
             ++hit_num;
-            x -= pp.v.x;
+            x -= ((fx < 0 && abs(fx) > x) ? 0 : fx);
+            if (x >= gdimx || x < 0) 
+                x %= (gdimx-1);
+            if (pp.v.y < 1.0 || pp.v.z < 1.0) {
+                pp.v.y += pp.v.x * fix_speed;
+                pp.v.z += pp.v.x * fix_speed;
+            }
             pp.v.x = - pp.v.x;
         }
-        while (y >= gdimy || y < 0) {
+        if (y >= gdimy || y < 0) {
             ++hit_num;
-            y -= pp.v.y;
+            y -= ((fy < 0 && abs(fy) > y) ? 0 : fy);
+            if (y >= gdimy || y < 0) 
+                y %= (gdimy - 1);
+            if (pp.v.x < 1.0 || pp.v.z < 1.0){
+                pp.v.x += pp.v.y * fix_speed;
+                pp.v.z += pp.v.y * fix_speed;
+            } 
             pp.v.y = - pp.v.y;
         }
-        while (z >= gdimz || z < 0) {
+        if (z >= gdimz || z < 0) {
             ++hit_num;
-            z -= pp.v.z;
+            z -= ((fz < 0 && abs(fz) > z) ? 0 : fz);
+            if (z >= gdimz || z < 0) 
+                z %= (gdimz - 1);
+            if (pp.v.x < 1.0 || pp.v.y < 1.0) {
+                pp.v.y += pp.v.z * fix_speed;
+                pp.v.x += pp.v.z * fix_speed;
+            }
             pp.v.z = - pp.v.z;
         }
 
@@ -85,33 +113,51 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
             auto tp = axis_conv(tpptr->cor(), offset, false);
             (*gridptr)[x][y][z] = &pp;
             (*gridptr)[tx][ty][tz] = nullptr;
+            //不考虑连续碰撞
             while ((*gridptr)[tp.x][tp.y][tp.z] != nullptr) {
+                auto tp_old = tp;
                 auto ttptr = (*gridptr)[tp.x][tp.y][tp.z];
-                tp.x += tpptr->v.x;
-                tp.y += tpptr->v.y;
-                tp.z += tpptr->v.z;
-                while (tp.x >= gdimx || tp.x < 0) {
-                    tp.x -= pp.v.x;
-                    pp.v.x = - pp.v.x;
+                int fx = rint(tpptr->v.x * fix_step_length);
+                int fy = rint(tpptr->v.y * fix_step_length);
+                int fz = rint(tpptr->v.z * fix_step_length);
+                tp.x += ((fx < 0 && abs(fx) > tp.x) ? 0 : fx);
+                tp.y += ((fy < 0 && abs(fy) > tp.y) ? 0 : fy);
+                tp.z += ((fz < 0 && abs(fz) > tp.z) ? 0 : fz);
+                if (tp.x >= gdimx || tp.x < 0) {
+                    tp.x -= ((fx < 0 && abs(fx) > x) ? 0 : fx);
+                    if (tp.x >= gdimx || tp.x < 0) 
+                        tp.x %= (gdimx-1);
+                    tpptr->v.y += tpptr->v.y * fix_speed;
+                    tpptr->v.z += tpptr->v.z * fix_speed;
+                    tpptr->v.x = -tpptr->v.x;
                     hit_num++;
                 }
-                while (tp.y >= gdimy || tp.y < 0) {
-                    tp.y -= pp.v.y;
-                    pp.v.y = - pp.v.y;
+                if (tp.y >= gdimy || tp.y < 0) {
+                    tp.y -= ((fy < 0 && abs(fy) > y) ? 0 : fy);
+                    if (tp.y >= gdimy || tp.y < 0) 
+                        tp.y %= (gdimy - 1);
+                    tpptr->v.x += tpptr->v.x * fix_speed;
+                    tpptr->v.z += tpptr->v.z * fix_speed;
+                    tpptr->v.y = -tpptr->v.y;
                     hit_num++;
                 }
-                while (tp.z >= gdimz || tp.z < 0) {
-                    tp.z -= pp.v.z;
-                    pp.v.z = - pp.v.z;
+                if (tp.z >= gdimz || tp.z < 0) {
+                    tp.z -= ((fz < 0 && abs(fz) > z) ? 0 : fz);
+                    if (tp.z >= gdimz || tp.z < 0) 
+                        tp.z %= (gdimz - 1);
+                    tpptr->v.y += tpptr->v.y * fix_speed;
+                    tpptr->v.x += tpptr->v.x * fix_speed;
+                    tpptr->v.z = -tpptr->v.z;
                     hit_num++;
                 }
+                if (tp == tp_old)
+                    break;
                 if ((*gridptr)[tp.x][tp.y][tp.z] != nullptr) {
                     auto ttptrr = (*gridptr)[tp.x][tp.y][tp.z];
                     ttptrr->hit_v(ttptr);
                     hit_num++;
                 }
             }
-
             (*gridptr)[tp.x][tp.y][tp.z] = tpptr;
         }
     }

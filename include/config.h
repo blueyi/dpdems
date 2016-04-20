@@ -13,8 +13,8 @@
 #include <map>
 
 
-extern std::string dPath;
-extern int oFNum, eDuration, cSInterval, dOFile, sFQ, nProc, boundType, isBounding;
+extern std::string dPath, dataFile;
+extern int timestep, maxdim, stepnum, oFNum, eDuration, cSInterval, dOFile, sFQ, nProc, boundType, isBounding;
 extern double oFInterval, dOADraw, dOInfo, fDBeg, fDInt, gravity, mubed, mus, res, waterLine, waterVel, windVel, cDF, cDM, aMCoef, nStrength, tStrength; 
 
 //将所有参数读入到map中，返回读取的参数数量
@@ -24,6 +24,6 @@ std::size_t read_conf(const char *fstr, std::map<std::string, std::string> &con)
 template <typename T> std::size_t inconf(const std::map<std::string, std::string> &aval, const std::vector<std::string> &valname, const std::vector<T *> &val);
 
 //输入参数配置文件，进行参数配置
-bool ini_conf(const char *filepath);
+bool ini_conf(const std::string &);
 
 #endif /* !CONFIG_H */

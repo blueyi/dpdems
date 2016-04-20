@@ -1,0 +1,30 @@
+inipol.002	dPath	//后面是注释，可有可无，但前面每个参数的值必须要与名称对应，各行可以不按顺序
+inputdata.txt	dataFile	//输入数据文件
+1000	timestep	//计算时间步
+100	maxdim		//网格大小-maxdim~+maxdim
+10	stepnum		//计算多少个时间步
+400	oFNum	//output file number
+200	eDuration	//expperiment duration
+0.5	oFInterval	//output file interval !dtoutAni
+2.0	dOADraw	//dtoutAni_draw
+10	cSInterval	//contact search interval !ndtsrc
+0.2	dOInfo	//dtoutInfo
+200	dOFile	//dtoutfile
+100	sFQ	//sampling_frequency(fs)
+9999.0	fDBeg	//
+0.0	fDInt	//fdbgint
+4	nProc	//nproc
+-9.8	gravity	//
+0.7	mubed	//mubed
+0.1	mus	//mus
+0.1	res	//restitution
+3	boundType	//bound_type 1-刚性，2-弹性，3-周期, 4-自由
+0.20	waterLine	//waterline
+0.30	waterVel	//watervel
+0.0	windVel	//windvel
+0.2	cDF	//drag_force_coef(cdf)
+0.14	cDM	//drag_moment_coef(cdm)
+0.15	aMCoef	//
+0	isBounding	//isbonding
+2e-2	nStrength	//n_strength
+1e-2	tStrength	//t_strength

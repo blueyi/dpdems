@@ -6,6 +6,7 @@
  */
 
 #include "../include/grid.h"
+#include "../include/config.h"
 #include <iostream>
 #include <fstream>
 #include <cctype>
@@ -18,13 +19,20 @@
 //const int grid_maxy = 50;
 //const int grid_maxz = 50;
 
-unsigned hit(std::vector<ParticlePtr> &, Grid &, unsigned long);
+unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
 
 int main(int argc, char **argv)
 {
    // std::cout.setf(std::ios::scientific);
    // std::cout.precision(19);
-   std::string ifileName = "inputdatas.txt";
+   std::string configFile = "config.txt";
+
+   if (ini_conf(configFile.c_str()))
+      std::cout << "Success" << std::endl;
+   else 
+      std::cout << "ini_conf error!" << std::endl;
+
+   std::string ifileName = dataFile;
    std::ifstream inf;
    if (2 > argc){
       std::cout << "Use the default input file: inputdatas.txt" << std::endl;
@@ -75,19 +83,36 @@ int main(int argc, char **argv)
          return 0;
       }
    }
+   std::string ofs_result = ifileName + ".log";
+   std::ofstream ofresult(ofs_result);
 
    std::cout << "Particle Num: " << particle_num << std::endl;
    std::cout << "Time step: " << timestep << std::endl;
    std::cout << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************Start*************" << std::endl;
+
+   ofresult << "Particle Num: " << particle_num << std::endl;
+   ofresult << "Time step: " << timestep << std::endl;
+   ofresult << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   ofresult << "Time step num: " << stepnum << std::endl;
+   ofresult << std::endl << "************Start*************" << std::endl;
+
+
+
    clock_t t;
    t = clock();
 
    std::vector<Particle> pv(particle_num);
+   std::size_t readnum = 0;
    for (auto &p : pv) {
+      ++readnum;
       p.asign(inf);
+      if (!inf)
+         break;
    }
+   std::cout << "Read particle data num: " << readnum << std::endl << std::endl;
+   ofresult << "Read particle data num: " << readnum << std::endl << std::endl;
    inf.close();
    double maxx, maxy, maxz;
    maxx = fabs((pv[0]).xyz.x);
@@ -102,8 +127,8 @@ int main(int argc, char **argv)
          maxz = fabs(p.xyz.z);
    }
 
-int grid_minx, grid_miny, grid_minz, grid_maxx, grid_maxy, grid_maxz;
-grid_minx = grid_miny = grid_minz = grid_maxx = grid_maxy = grid_maxz = maxdim;
+   int grid_minx, grid_miny, grid_minz, grid_maxx, grid_maxy, grid_maxz;
+   grid_minx = grid_miny = grid_minz = grid_maxx = grid_maxy = grid_maxz = maxdim;
 
    XYZ<int> grid_limit(grid_maxx - 1, grid_maxy - 1, grid_maxz - 1);
    double scal_x, scal_y, scal_z;
@@ -123,10 +148,10 @@ grid_minx = grid_miny = grid_minz = grid_maxx = grid_maxy = grid_maxz = maxdim;
    }
    (ppv.begin() + 1)->modify_cor(1, 1, 4);
 
-//   for (auto pp : ppv) {
-//      std::cout << "*" << pp.no() << "*" << std::endl;
-//      pp.print(std::cout);
-//   }
+   //   for (auto pp : ppv) {
+   //      std::cout << "*" << pp.no() << "*" << std::endl;
+   //      pp.print(std::cout);
+   //   }
 
    std::size_t gdimx = axis_conv(grid_maxx, abs(grid_minx));
    std::size_t gdimy = axis_conv(grid_maxy, abs(grid_miny));
@@ -137,18 +162,36 @@ grid_minx = grid_miny = grid_minz = grid_maxx = grid_maxy = grid_maxz = maxdim;
    grid.fill(ppv);
 
 
-   unsigned hit_times = hit(ppv, grid, timestep * stepnum);
+   hit(ppv, grid, timestep * stepnum, ofresult, pv);
    t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
-   std::cout << "Total time consumed: " << seconds << " seconds" << std::endl;
+
+   std::cout << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
+   std::cout << "Result output to file: " << ofs_result << std::endl;
+
+   std::cout << std::endl << "************Config Info*************" << std::endl;
+   std::cout << "Particle Num: " << particle_num << std::endl;
+   std::cout << "Time step: " << timestep << std::endl;
+   std::cout << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
-//   for (auto pp : ppv) {
-//      std::cout << "*" << pp.no() << "*" << std::endl;
-//      pp.print(std::cout);
-//   }
+   ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
+   ofresult << std::endl << "************Config Info*************" << std::endl;
+   ofresult << "Particle Num: " << particle_num << std::endl;
+   ofresult << "Time step: " << timestep << std::endl;
+   ofresult << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   ofresult << "Time step num: " << stepnum << std::endl;
+   ofresult << std::endl << "************End*************" << std::endl;
 
-//   std::cout << "Unnull: " << grid.unNullPtrNum() << std::endl;
+   ofresult.close();
+
+   //   for (auto pp : ppv) {
+   //      std::cout << "*" << pp.no() << "*" << std::endl;
+   //      pp.print(std::cout);
+   //   }
+
+   //   std::cout << "Unnull: " << grid.unNullPtrNum() << std::endl;
 
 
    //std::cout << maxx << " " << maxy << " " << maxz << std::endl;
@@ -158,14 +201,20 @@ grid_minx = grid_miny = grid_minz = grid_maxx = grid_maxy = grid_maxz = maxdim;
    return 0;
 }
 
-unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time)
+unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
 {
-   unsigned total_hit = 0;
+   unsigned long long total_hit = 0;
    for (auto &pp : ppv) {
       unsigned hit_times = pp.move(grid, time);
       total_hit += hit_times;
       std::cout << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
       std::cout << "Total hit times: " << total_hit << std::endl;
+
+      os << std::endl << "********************" << std::endl;
+      os << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
+      os << "Particle info: " << std::endl;
+      (pv[pp.no() - 1]).print(os);
+      os << "Total hit times: " << total_hit << std::endl << std::endl;
    }
    return total_hit;
 }

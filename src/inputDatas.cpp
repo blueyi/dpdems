@@ -154,7 +154,11 @@ void ParticlePtr::hit_v(ParticlePtr *pb)
 {
     auto t = this->v;
     this->v = pb->v;
+    if (this->v.sum() < 1.0)
+        this->v.scale(0.2);
     pb->v = t;
+    if (pb->v.sum() < 1.0)
+        pb->v.scale(0.2);
 }
 
 unsigned ParticlePtr::move(Grid &grid, unsigned long time)
