@@ -17,7 +17,7 @@ int timestep, maxdim, stepnum, oFNum, eDuration, cSInterval, dOFile, sFQ, nProc,
 double oFInterval, dOADraw, dOInfo, fDBeg, fDInt, gravity, mubed, mus, res, waterLine, waterVel, windVel, cDF, cDM, aMCoef, nStrength, tStrength; 
 
 std::vector<int *> confi{&timestep, &maxdim, &stepnum, &oFNum, &eDuration, &cSInterval, &dOFile, &sFQ, &nProc, &boundType, &isBounding};
-std::vector<std::string> confis{"oFNum", "eDuration", "cSInterval", "dOFile", "sFQ", "nProc", "boundType", "isBounding"};
+std::vector<std::string> confis{"timestep", "maxdim", "stepnum", "oFNum", "eDuration", "cSInterval", "dOFile", "sFQ", "nProc", "boundType", "isBounding"};
 
 
 std::vector<double *> confd{&oFInterval, &dOADraw, &dOInfo, &fDBeg, &fDInt, &gravity, &mubed, &mus, &res, &waterLine, &waterVel, &windVel, &cDF, &cDM, &aMCoef, &nStrength, &tStrength};

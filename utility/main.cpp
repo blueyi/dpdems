@@ -35,7 +35,7 @@ int main(int argc, char **argv)
    std::string ifileName = dataFile;
    std::ifstream inf;
    if (2 > argc){
-      std::cout << "Use the default input file: inputdatas.txt" << std::endl;
+      std::cout << "Use the default input file name from config.txt: inputdatas.txt" << std::endl;
    }
    else {
       ifileName = argv[1];
@@ -47,9 +47,8 @@ int main(int argc, char **argv)
       return 0;
    }
    unsigned particle_num = 0;
-   unsigned timestep, maxdim, stepnum;
-   double poissonp, rho, xlen, ylen, zlen;
-   inf >> particle_num >> timestep >> maxdim >> stepnum >>
+   double ttime0, dt, elasticmod, poissonp, rho, xlen, ylen, zlen;
+   inf >> particle_num >> ttime0 >> dt >> elasticmod >>
       poissonp >> rho >> xlen >> ylen >> zlen;
 
    if ( 3 > maxdim) {
