@@ -70,9 +70,9 @@ int main(int argc, char **argv)
       }
    }
 
-   if (maxdim >= 500) {
+   if (maxdim >= 300) {
       std::string str;
-      std::cout << "You need at least 6.5G memory, contine? Y/N: " << std::endl;
+      std::cout << "You need at least 1.7G memory, contine? Y/N: " << std::endl;
       std::cin>> str;
       for (auto &c : str) {
          c = tolower(c);
@@ -81,7 +81,22 @@ int main(int argc, char **argv)
          std::cout << "Execute terminate!" << std::endl;
          return 0;
       }
+
+      if (maxdim >= 500) {
+         std::string str;
+         std::cout << "You need at least 6.5G memory, contine? Y/N: " << std::endl;
+         std::cin>> str;
+         for (auto &c : str) {
+            c = tolower(c);
+         }
+         if (str[0] != 'y') {
+            std::cout << "Execute terminate!" << std::endl;
+            return 0;
+         }
+      }
+
    }
+
    std::string ofs_result = ifileName + ".log";
    std::ofstream ofresult(ofs_result);
 
