@@ -23,8 +23,8 @@ unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std:
 
 int main(int argc, char **argv)
 {
-   // std::cout.setf(std::ios::scientific);
-   // std::cout.precision(19);
+   std::cout.setf(std::ios::scientific);
+   std::cout.precision(19);
    std::string configFile = "config.txt";
 
    if (ini_conf(configFile.c_str()))
@@ -85,15 +85,15 @@ int main(int argc, char **argv)
    std::string ofs_result = ifileName + ".log";
    std::ofstream ofresult(ofs_result);
 
-   std::cout << "Particle Num: " << particle_num << std::endl;
-   std::cout << "Time step: " << timestep << std::endl;
-   std::cout << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   std::cout << " Particle Num: " << particle_num << std::endl;
+   std::cout << "    Time step: " << timestep << std::endl;
+   std::cout << "      Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************Start*************" << std::endl;
 
-   ofresult << "Particle Num: " << particle_num << std::endl;
-   ofresult << "Time step: " << timestep << std::endl;
-   ofresult << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   ofresult << " Particle Num: " << particle_num << std::endl;
+   ofresult << "    Time step: " << timestep << std::endl;
+   ofresult << "      Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
    ofresult << "Time step num: " << stepnum << std::endl;
    ofresult << std::endl << "************Start*************" << std::endl;
 
@@ -105,14 +105,16 @@ int main(int argc, char **argv)
    std::vector<Particle> pv(particle_num);
    std::size_t readnum = 0;
    for (auto &p : pv) {
-      ++readnum;
-      p.asign(inf);
       if (!inf)
          break;
+      ++readnum;
+      p.asign(inf);
    }
    std::cout << "Read particle data num: " << readnum << std::endl << std::endl;
    ofresult << "Read particle data num: " << readnum << std::endl << std::endl;
    inf.close();
+   particle_num = readnum;
+   pv.resize(particle_num);
    double maxx, maxy, maxz;
    maxx = fabs((pv[0]).xyz.x);
    maxy = fabs((pv[0]).xyz.y);
@@ -169,17 +171,17 @@ int main(int argc, char **argv)
    std::cout << "Result output to file: " << ofs_result << std::endl;
 
    std::cout << std::endl << "************Config Info*************" << std::endl;
-   std::cout << "Particle Num: " << particle_num << std::endl;
-   std::cout << "Time step: " << timestep << std::endl;
-   std::cout << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   std::cout << " Particle Num: " << particle_num << std::endl;
+   std::cout << "    Time step: " << timestep << std::endl;
+   std::cout << "      Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
    ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
    ofresult << std::endl << "************Config Info*************" << std::endl;
-   ofresult << "Particle Num: " << particle_num << std::endl;
-   ofresult << "Time step: " << timestep << std::endl;
-   ofresult << "Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
+   ofresult << " Particle Num: " << particle_num << std::endl;
+   ofresult << "    Time step: " << timestep << std::endl;
+   ofresult << "      Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
    ofresult << "Time step num: " << stepnum << std::endl;
    ofresult << std::endl << "************End*************" << std::endl;
 
@@ -206,13 +208,19 @@ unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std:
    for (auto &pp : ppv) {
       unsigned hit_times = pp.move(grid, time);
       total_hit += hit_times;
-      std::cout << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-      std::cout << "Total hit times: " << total_hit << std::endl;
+      std::cout << std::endl << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
+      std::cout << "      Total hit times: " << total_hit << std::endl;
+      std::cout << "Particle current info: " << std::endl;
+      pp.print(std::cout);
 
+      os.setf(std::ios::scientific);
+      os.precision(19);
       os << std::endl << "********************" << std::endl;
       os << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-      os << "Particle info: " << std::endl;
+      os << "Particle origin info: " << std::endl;
       (pv[pp.no() - 1]).print(os);
+      os << "Particle current info: " << std::endl;
+      pp.print(os);
       os << "Total hit times: " << total_hit << std::endl << std::endl;
    }
    return total_hit;
