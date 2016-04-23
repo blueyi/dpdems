@@ -11,6 +11,9 @@
 #include <fstream>
 #include <cctype>
 #include <ctime>
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
 
 const int maxThreads = 21504;
 const int threadPerBlock = 512;
@@ -88,7 +91,6 @@ __global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *d
 }
 
 
-//unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
 
 int main(int argc, char **argv)
 {
@@ -183,9 +185,6 @@ int main(int argc, char **argv)
 
 
 
-   //   clock_t t;
-   //   t = clock();
-
    std::vector<Particle> pv(particle_num);
    std::size_t readnum = 0;
    for (auto &p : pv) {
@@ -236,8 +235,6 @@ int main(int argc, char **argv)
    xt[readnum] = scal_x;
    yt[readnum] = scal_y;
    zt[readnum] = scal_z;
-//   std::cout << xt[0] << std::endl;
-//   std::cout << vz[0] << std::endl;
 
 
    int *x = new int(readnum);
@@ -249,7 +246,13 @@ int main(int argc, char **argv)
    double *dev_xt;
    double *dev_yt;
    double *dev_zt;
+
+   std::cout << xt[0] << std::endl;
+
    CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(int)));
+
+   std::cout << vz[0] << std::endl;
+
    CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(int)));
    CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(int)));
    CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
@@ -272,63 +275,37 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaFree(dev_yt));
    CHECK_ERROR(cudaFree(dev_zt));
 
+   int ***grid;
+   grid = new int **[maxdim];
+   for (int i = 0; i < maxdim; ++i) {
+      grid[i] = new int *[maxdim];
+      for (int j = 0; j < maxdim; ++j) {
+         grid[i][j] = new int[maxdim];
+         for (int k = 0; k < maxdim; ++k)
+            grid[i][j][k] = 0;
+      }
+   }
+   std::cout << *(x + 0) << " " << *(y + 0) << " " << *(z + 0) << std::endl;
+   for (int i = 0; i < readnum; ++i) {
+      grid[*(x + i)][*(y + i)][*(z + i)] = i;
+   }
+
+
+
+
+
 
    std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
+   for (int i = 0; i < maxdim; ++i) {
+      for (int j = 0; j < maxdim; ++j) {
+         delete[] grid[i][j];
+      }
+      delete[] grid[i];
+   }
+   delete[] grid;
 
-   /*
-   //   for (auto pp : ppv) {
-   //      std::cout << "*" << pp.no() << "*" << std::endl;
-   //      pp.print(std::cout);
-   //   }
-
-   std::size_t gdimx = axis_conv(grid_maxx, abs(grid_minx));
-   std::size_t gdimy = axis_conv(grid_maxy, abs(grid_miny));
-   std::size_t gdimz = axis_conv(grid_maxz, abs(grid_minz));
-
-   XYZ<int> offset(grid_maxx, grid_maxy, grid_maxz);
-   Grid grid(gdimx, gdimy, gdimz, offset);
-   grid.fill(ppv);
-
-
-
-
-   //   hit(ppv, grid, timestep * stepnum, ofresult, pv);
-   //   t = clock() - t;
-   double seconds = (double)t / CLOCKS_PER_SEC;
-
-   std::cout << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
-   std::cout << "Result output to file: " << ofs_result << std::endl;
-
-   std::cout << std::endl << "************Config Info*************" << std::endl;
-   std::cout << " Particle Num: " << particle_num << std::endl;
-   std::cout << "    Time step: " << timestep << std::endl;
-   std::cout << "      Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
-   std::cout << "Time step num: " << stepnum << std::endl;
-   std::cout << std::endl << "************End*************" << std::endl;
-
-   ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
-   ofresult << std::endl << "************Config Info*************" << std::endl;
-   ofresult << " Particle Num: " << particle_num << std::endl;
-   ofresult << "    Time step: " << timestep << std::endl;
-   ofresult << "      Max dim: -" << maxdim << " ~ +" << maxdim << std::endl;
-   ofresult << "Time step num: " << stepnum << std::endl;
-   ofresult << std::endl << "************End*************" << std::endl;
-
-   ofresult.close();
-
-   //   for (auto pp : ppv) {
-   //      std::cout << "*" << pp.no() << "*" << std::endl;
-   //      pp.print(std::cout);
-   //   }
-
-   //   std::cout << "Unnull: " << grid.unNullPtrNum() << std::endl;
-
-   //std::cout << maxx << " " << maxy << " " << maxz << std::endl;
-   //std::cout << p0.x << " " << p0.y << " " << p0.z << std::endl;
-   //std::cout << (pv[0]).xyz.x << " " << (pv[0]).xyz.y << " " << (pv[0]).xyz.z;
    std::cout << std::endl;
-    */
    return 0;
 }
 
@@ -345,31 +322,3 @@ void init(std::vector<double *> &ppv, const std::vector<Particle> &pv)
    }
 }
 
-
-
-
-/*
-   unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
-   {
-   unsigned long long total_hit = 0;
-   for (auto &pp : ppv) {
-   unsigned hit_times = pp.move(grid, time);
-   total_hit += hit_times;
-   std::cout << std::endl << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-   std::cout << "      Total hit times: " << total_hit << std::endl;
-   std::cout << "Particle current info: " << std::endl;
-   pp.print(std::cout);
-
-   os.setf(std::ios::scientific);
-   os.precision(19);
-   os << std::endl << "********************" << std::endl;
-   os << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-   os << "Particle origin info: " << std::endl;
-   (pv[pp.no() - 1]).print(os);
-   os << "Particle current info: " << std::endl;
-   pp.print(os);
-   os << "Total hit times: " << total_hit << std::endl << std::endl;
-   }
-   return total_hit;
-   }
- */

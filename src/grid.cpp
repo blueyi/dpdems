@@ -64,7 +64,6 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
         y += ((fy < 0 && abs(fy) > y) ? 0 : fy);
         z += ((fz < 0 && abs(fz) > z) ? 0 : fz);
 
-        //简化考虑越界问题，速度为矢量
         if (x >= gdimx || x < 0) {
             ++hit_num;
             x -= ((fx < 0 && abs(fx) > x) ? 0 : fx);
@@ -106,14 +105,12 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
         }
         else {
             hit_num++;
-            //两个颗粒应该交换速度
             auto tpptr = (*gridptr)[x][y][z];
             pp.hit_v(tpptr);
             pp.xyz.asign(axis_conv(x, -offset.x), axis_conv(y, -offset.y), axis_conv(z, -offset.z));
             auto tp = axis_conv(tpptr->cor(), offset, false);
             (*gridptr)[x][y][z] = &pp;
             (*gridptr)[tx][ty][tz] = nullptr;
-            //不考虑连续碰撞
             while ((*gridptr)[tp.x][tp.y][tp.z] != nullptr) {
                 auto tp_old = tp;
                 auto ttptr = (*gridptr)[tp.x][tp.y][tp.z];
