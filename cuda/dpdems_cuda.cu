@@ -16,27 +16,27 @@ const int maxThreads = 21504;
 const int threadPerBlock = 512;
 int blockPerGrid(const int dim, const int threadPerBlock)
 {
-    return (dim + threadPerBlock - 1) / threadPerBlock;
+   return (dim + threadPerBlock - 1) / threadPerBlock;
 }
 
 inline void checkCudaError(cudaError_t error, const char *file, const int line)
 {
-    if (error != cudaSuccess) {
-        std::cerr << "CUDA CALL FAILED: " << file << "( " << line << " )- " <<
-            cudaGetErrorString(error) << std::endl;
-        exit(EXIT_FAILURE);
-    }
+   if (error != cudaSuccess) {
+      std::cerr << "CUDA CALL FAILED: " << file << "( " << line << " )- " <<
+         cudaGetErrorString(error) << std::endl;
+      exit(EXIT_FAILURE);
+   }
 }
 
 inline void checkCudaState(const char *msg, const char *file, const int line)
 {
-    cudaError_t error = cudaGetLastError();
-    if (error != cudaSuccess) {
-        std::cerr << "---" << msg << " Error--" << std::endl;
-        std::cerr << file << "( " << line << " )- " << 
-            cudaGetErrorString(error) << std::endl;
-        exit(EXIT_FAILURE);
-    }
+   cudaError_t error = cudaGetLastError();
+   if (error != cudaSuccess) {
+      std::cerr << "---" << msg << " Error--" << std::endl;
+      std::cerr << file << "( " << line << " )- " << 
+         cudaGetErrorString(error) << std::endl;
+      exit(EXIT_FAILURE);
+   }
 }
 
 #define CHECK_ERROR(error) checkCudaError(error, __FILE__, __LINE__);
@@ -44,47 +44,47 @@ inline void checkCudaState(const char *msg, const char *file, const int line)
 
 void print_device(const int id)
 {
-    cudaDeviceProp props;
-    CHECK_ERROR(cudaGetDeviceProperties(&props, id));
-    std::cout << "---Property of currently device used---" << std::endl;
-    std::cout << "Device " << id << ": " << props.name << std::endl;
-    std::cout << "CUDA Capability: " << props.major << "." << props.minor
-        << std::endl;
-    std::cout << "MultiProcessor count: " << props.multiProcessorCount << std::endl;
+   cudaDeviceProp props;
+   CHECK_ERROR(cudaGetDeviceProperties(&props, id));
+   std::cout << "---Property of currently device used---" << std::endl;
+   std::cout << "Device " << id << ": " << props.name << std::endl;
+   std::cout << "CUDA Capability: " << props.major << "." << props.minor
+      << std::endl;
+   std::cout << "MultiProcessor count: " << props.multiProcessorCount << std::endl;
 }
 
 void setCudaDevice(int id)
 {
-    int numDevice = 0;
-    CHECK_ERROR(cudaGetDeviceCount(&numDevice));
-    std::cout << "Total CUDA device number: " << numDevice << std::endl;
-    if (numDevice > 1) {
-        cudaDeviceProp props;
-        cudaGetDeviceProperties(&props, id);
-        int maxMultiProcessors = props.multiProcessorCount;
-        for (int device = 1; device < numDevice; ++device) {
-            CHECK_ERROR(cudaGetDeviceProperties(&props, device));
-            if (maxMultiProcessors < props.multiProcessorCount) {
-                maxMultiProcessors = props.multiProcessorCount;
-                id = device;
-            }
-        }
-    }
-    CHECK_ERROR(cudaSetDevice(id));
-    print_device(id);
+   int numDevice = 0;
+   CHECK_ERROR(cudaGetDeviceCount(&numDevice));
+   std::cout << "Total CUDA device number: " << numDevice << std::endl;
+   if (numDevice > 1) {
+      cudaDeviceProp props;
+      cudaGetDeviceProperties(&props, id);
+      int maxMultiProcessors = props.multiProcessorCount;
+      for (int device = 1; device < numDevice; ++device) {
+         CHECK_ERROR(cudaGetDeviceProperties(&props, device));
+         if (maxMultiProcessors < props.multiProcessorCount) {
+            maxMultiProcessors = props.multiProcessorCount;
+            id = device;
+         }
+      }
+   }
+   CHECK_ERROR(cudaSetDevice(id));
+   print_device(id);
 }
 
 void init(std::vector<double *>&, const std::vector<Particle>&);
 
 __global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *dev_x, int *dev_y, int *dev_z, int readnum, int maxdim)
 {
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    while (tid < readnum) {
-        dev_x[tid] = dev_xt[tid] * dev_xt[readnum] + maxdim;
-        dev_y[tid] = dev_yt[tid] * dev_yt[readnum] + maxdim;
-        dev_z[tid] = dev_zt[tid] * dev_zt[readnum] + maxdim;
-        tid += blockDim.x * gridDim.x;
-    }
+   int tid = threadIdx.x + blockIdx.x * blockDim.x;
+   while (tid < readnum) {
+      dev_x[tid] = dev_xt[tid] * dev_xt[readnum] + maxdim;
+      dev_y[tid] = dev_yt[tid] * dev_yt[readnum] + maxdim;
+      dev_z[tid] = dev_zt[tid] * dev_zt[readnum] + maxdim;
+      tid += blockDim.x * gridDim.x;
+   }
 }
 
 
@@ -183,8 +183,8 @@ int main(int argc, char **argv)
 
 
 
-//   clock_t t;
-//   t = clock();
+   //   clock_t t;
+   //   t = clock();
 
    std::vector<Particle> pv(particle_num);
    std::size_t readnum = 0;
@@ -225,19 +225,20 @@ int main(int argc, char **argv)
    scal_y = maxy == 0.0 ? 0.0 : (double)grid_limit.y / maxy;
    scal_z = maxz == 0.0 ? 0.0 : (double)grid_limit.z / maxz;
 
-   double *xxt = new double(readnum + 1);
-   double *xyt = new double(readnum + 1);
-   double *xzt = new double(readnum + 1);
+   double *xt = new double(readnum + 1);
+   double *yt = new double(readnum + 1);
+   double *zt = new double(readnum + 1);
    double *vx = new double(readnum);
    double *vy = new double(readnum);
    double *vz = new double(readnum);
-   std::vector<double *> ppv{xxt, xyt, xzt, vx, vy, vz};
+   std::vector<double *> ppv{xt, yt, zt, vx, vy, vz};
    init(ppv, pv);
-   xxt[readnum] = scal_x;
-   xyt[readnum] = scal_y;
-   xzt[readnum] = scal_z;
-//   std::cout << xxt[0] << std::endl;
+   xt[readnum] = scal_x;
+   yt[readnum] = scal_y;
+   zt[readnum] = scal_z;
+//   std::cout << xt[0] << std::endl;
 //   std::cout << vz[0] << std::endl;
+
 
    int *x = new int(readnum);
    int *y = new int(readnum);
@@ -254,9 +255,9 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
    CHECK_ERROR(cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(double)));
    CHECK_ERROR(cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(double)));
-   CHECK_ERROR(cudaMemcpy(dev_xt, xxt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
-   CHECK_ERROR(cudaMemcpy(dev_yt, xyt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
-   CHECK_ERROR(cudaMemcpy(dev_zt, xzt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_xt, xt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_yt, yt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_zt, zt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
    int threads = threadPerBlock;
    int blocks = blockPerGrid(readnum, threads);
    cudaScale<<<blocks, threads>>>(dev_xt, dev_yt, dev_zt, dev_x, dev_y, dev_z, readnum, maxdim);
@@ -272,12 +273,10 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaFree(dev_zt));
 
 
+   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
 
-//   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
-   
-
-/*
+   /*
    //   for (auto pp : ppv) {
    //      std::cout << "*" << pp.no() << "*" << std::endl;
    //      pp.print(std::cout);
@@ -294,8 +293,8 @@ int main(int argc, char **argv)
 
 
 
-//   hit(ppv, grid, timestep * stepnum, ofresult, pv);
-//   t = clock() - t;
+   //   hit(ppv, grid, timestep * stepnum, ofresult, pv);
+   //   t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
 
    std::cout << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
@@ -329,48 +328,48 @@ int main(int argc, char **argv)
    //std::cout << p0.x << " " << p0.y << " " << p0.z << std::endl;
    //std::cout << (pv[0]).xyz.x << " " << (pv[0]).xyz.y << " " << (pv[0]).xyz.z;
    std::cout << std::endl;
-   */
+    */
    return 0;
 }
 
 void init(std::vector<double *> &ppv, const std::vector<Particle> &pv)
 {
-    int readnum = pv.size();
-    for (int i = 0; i < readnum; ++i) {
-        *(ppv[0] + i) = (pv[i]).xyz.x;
-        *(ppv[1] + i) = (pv[i]).xyz.y;
-        *(ppv[2] + i) = (pv[i]).xyz.z;
-        *(ppv[3] + i) = (pv[i]).v.x;
-        *(ppv[4] + i) = (pv[i]).v.y;
-        *(ppv[5] + i) = (pv[i]).v.z;
-    }
+   int readnum = pv.size();
+   for (int i = 0; i < readnum; ++i) {
+      *(ppv[0] + i) = (pv[i]).xyz.x;
+      *(ppv[1] + i) = (pv[i]).xyz.y;
+      *(ppv[2] + i) = (pv[i]).xyz.z;
+      *(ppv[3] + i) = (pv[i]).v.x;
+      *(ppv[4] + i) = (pv[i]).v.y;
+      *(ppv[5] + i) = (pv[i]).v.z;
+   }
 }
 
 
 
 
 /*
-unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
-{
-    unsigned long long total_hit = 0;
-    for (auto &pp : ppv) {
-        unsigned hit_times = pp.move(grid, time);
-        total_hit += hit_times;
-        std::cout << std::endl << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-        std::cout << "      Total hit times: " << total_hit << std::endl;
-        std::cout << "Particle current info: " << std::endl;
-        pp.print(std::cout);
+   unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
+   {
+   unsigned long long total_hit = 0;
+   for (auto &pp : ppv) {
+   unsigned hit_times = pp.move(grid, time);
+   total_hit += hit_times;
+   std::cout << std::endl << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
+   std::cout << "      Total hit times: " << total_hit << std::endl;
+   std::cout << "Particle current info: " << std::endl;
+   pp.print(std::cout);
 
-        os.setf(std::ios::scientific);
-        os.precision(19);
-        os << std::endl << "********************" << std::endl;
-        os << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-        os << "Particle origin info: " << std::endl;
-        (pv[pp.no() - 1]).print(os);
-        os << "Particle current info: " << std::endl;
-        pp.print(os);
-        os << "Total hit times: " << total_hit << std::endl << std::endl;
-    }
-    return total_hit;
-}
-*/
+   os.setf(std::ios::scientific);
+   os.precision(19);
+   os << std::endl << "********************" << std::endl;
+   os << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
+   os << "Particle origin info: " << std::endl;
+   (pv[pp.no() - 1]).print(os);
+   os << "Particle current info: " << std::endl;
+   pp.print(os);
+   os << "Total hit times: " << total_hit << std::endl << std::endl;
+   }
+   return total_hit;
+   }
+ */
