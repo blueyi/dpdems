@@ -7,7 +7,7 @@
 
 #ifndef GRID_H
 #define GRID_H
-#include "inputDatas.h"
+#include "particlePtr.h"
 
 class Grid {
 public:
