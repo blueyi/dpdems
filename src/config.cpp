@@ -31,8 +31,10 @@ template <typename T> std::size_t inconf(const std::map<std::string, std::string
     std::size_t cont = 0; 
     for (auto v : val) {
         auto valpair = con.find(valname[cont]);
-        if (valpair == con.end())
+        if (valpair == con.end()) {
             runError("Config parameter", valname[cont]);
+            return 0;
+        }
         std::istringstream is(valpair->second);
         is >> *v;
         ++cont;
@@ -65,6 +67,8 @@ std::size_t read_conf(const char *fstr, std::map<std::string, std::string> &con)
 bool ini_conf(const std::string &filepath)
 {
     std::size_t acont = read_conf(filepath.c_str(), confin);
+    if (acont == 0)
+        return false;
     dPath = confin["dPath"];
     dataFile = confin["dataFile"];
     if (dPath.empty())

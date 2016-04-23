@@ -76,6 +76,18 @@ void setCudaDevice(int id)
 
 void init(std::vector<double *>&, const std::vector<Particle>&);
 
+__global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *dev_x, int *dev_y, int *dev_z, int readnum, int maxdim)
+{
+    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+    while (tid < readnum) {
+        dev_x[tid] = dev_xt[tid] * dev_xt[readnum] + maxdim;
+        dev_y[tid] = dev_yt[tid] * dev_yt[readnum] + maxdim;
+        dev_z[tid] = dev_zt[tid] * dev_zt[readnum] + maxdim;
+        tid += blockDim.x * gridDim.x;
+    }
+}
+
+
 //unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
 
 int main(int argc, char **argv)
@@ -188,7 +200,8 @@ int main(int argc, char **argv)
    particle_num = readnum;
    pv.resize(particle_num);
 
-
+   int device_id = 0;
+   setCudaDevice(device_id);
 
    double maxx, maxy, maxz;
    maxx = fabs((pv[0]).xyz.x);
@@ -207,7 +220,7 @@ int main(int argc, char **argv)
    grid_maxx = grid_maxy = grid_maxz = maxdim;
 
    XYZ<int> grid_limit(grid_maxx - 1, grid_maxy - 1, grid_maxz - 1);
-   int scal_x, scal_y, scal_z;
+   double scal_x, scal_y, scal_z;
    scal_x = maxx == 0.0 ? 0.0 : (double)grid_limit.x / maxx;
    scal_y = maxy == 0.0 ? 0.0 : (double)grid_limit.y / maxy;
    scal_z = maxz == 0.0 ? 0.0 : (double)grid_limit.z / maxz;
@@ -223,8 +236,8 @@ int main(int argc, char **argv)
    xxt[readnum] = scal_x;
    xyt[readnum] = scal_y;
    xzt[readnum] = scal_z;
-   std::cout << xxt[0] << std::endl;
-   std::cout << vz[0] << std::endl;
+//   std::cout << xxt[0] << std::endl;
+//   std::cout << vz[0] << std::endl;
 
    int *x = new int(readnum);
    int *y = new int(readnum);
@@ -232,16 +245,36 @@ int main(int argc, char **argv)
    int *dev_x;
    int *dev_y;
    int *dev_z;
-   int *dev_xt;
-   int *dev_yt;
-   int *dev_zt;
-   cudaMalloc((void**)&dev_x, readnum * sizeof(int));
-   cudaMalloc((void**)&dev_y, readnum * sizeof(int));
-   cudaMalloc((void**)&dev_z, readnum * sizeof(int));
-   cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(int));
-   cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(int));
-   cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(int));
-   
+   double *dev_xt;
+   double *dev_yt;
+   double *dev_zt;
+   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(double)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(double)));
+   CHECK_ERROR(cudaMemcpy(dev_xt, xxt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_yt, xyt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_zt, xzt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   int threads = threadPerBlock;
+   int blocks = blockPerGrid(readnum, threads);
+   cudaScale<<<blocks, threads>>>(dev_xt, dev_yt, dev_zt, dev_x, dev_y, dev_z, readnum, maxdim);
+   CHECK_STATE("cudaScale call");
+   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaFree(dev_x));
+   CHECK_ERROR(cudaFree(dev_y));
+   CHECK_ERROR(cudaFree(dev_z));
+   CHECK_ERROR(cudaFree(dev_xt));
+   CHECK_ERROR(cudaFree(dev_yt));
+   CHECK_ERROR(cudaFree(dev_zt));
+
+
+
+
+//   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
    
 
 /*
@@ -312,6 +345,9 @@ void init(std::vector<double *> &ppv, const std::vector<Particle> &pv)
         *(ppv[5] + i) = (pv[i]).v.z;
     }
 }
+
+
+
 
 /*
 unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
