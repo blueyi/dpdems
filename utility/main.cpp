@@ -19,7 +19,7 @@
 //const int grid_maxy = 50;
 //const int grid_maxz = 50;
 
-unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
+unsigned long long hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
 
 int main(int argc, char **argv)
 {
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
    return 0;
 }
 
-unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
+unsigned long long hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
 {
    unsigned long long total_hit = 0;
    for (auto &pp : ppv) {

@@ -11,6 +11,9 @@
 #include <fstream>
 #include <cctype>
 #include <ctime>
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
 
 const int maxThreads = 21504;
 const int threadPerBlock = 512;
@@ -26,6 +29,8 @@ inline void checkCudaError(cudaError_t error, const char *file, const int line)
          cudaGetErrorString(error) << std::endl;
       exit(EXIT_FAILURE);
    }
+   else
+      std::cout << "cuda call success" << std::endl;
 }
 
 inline void checkCudaState(const char *msg, const char *file, const int line)
@@ -37,6 +42,8 @@ inline void checkCudaState(const char *msg, const char *file, const int line)
          cudaGetErrorString(error) << std::endl;
       exit(EXIT_FAILURE);
    }
+   else
+      std::cout << "cuda state Success: " << msg << std::endl;
 }
 
 #define CHECK_ERROR(error) checkCudaError(error, __FILE__, __LINE__);
@@ -76,7 +83,7 @@ void setCudaDevice(int id)
 
 void init(std::vector<double *>&, const std::vector<Particle>&);
 
-__global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *dev_x, int *dev_y, int *dev_z, int readnum, int maxdim)
+__global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, unsigned *dev_x, unsigned *dev_y, unsigned *dev_z, int readnum, int maxdim)
 {
    int tid = threadIdx.x + blockIdx.x * blockDim.x;
    while (tid < readnum) {
@@ -87,8 +94,11 @@ __global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *d
    }
 }
 
-
-//unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
+double scalev(double &, const double &);
+void swapv(double *, double *, double *, int, int, double);
+bool isInGrid(const int &, const int &, const int &, const int &);
+unsigned updatePosition(unsigned *, unsigned *, unsigned *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &);
+unsigned long long collision(unsigned *, unsigned *, unsigned *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &, std::ostream &);
 
 int main(int argc, char **argv)
 {
@@ -183,9 +193,6 @@ int main(int argc, char **argv)
 
 
 
-   //   clock_t t;
-   //   t = clock();
-
    std::vector<Particle> pv(particle_num);
    std::size_t readnum = 0;
    for (auto &p : pv) {
@@ -231,30 +238,47 @@ int main(int argc, char **argv)
    double *vx = new double(readnum);
    double *vy = new double(readnum);
    double *vz = new double(readnum);
-   std::vector<double *> ppv{xt, yt, zt, vx, vy, vz};
-   init(ppv, pv);
+   std::vector<double *> ppvt{xt, yt, zt, vx, vy, vz};
+   init(ppvt, pv);
    xt[readnum] = scal_x;
    yt[readnum] = scal_y;
    zt[readnum] = scal_z;
-//   std::cout << xt[0] << std::endl;
-//   std::cout << vz[0] << std::endl;
 
+   std::cout << vz[0] << std::endl;
+   std::cout << xt[0] << std::endl;
 
-   int *x = new int(readnum);
-   int *y = new int(readnum);
-   int *z = new int(readnum);
-   int *dev_x;
-   int *dev_y;
-   int *dev_z;
+   clock_t t;
+   t = clock();
+
+   cudaEvent_t start, stop;
+   CHECK_ERROR(cudaEventCreate(&start));
+   CHECK_ERROR(cudaEventCreate(&stop));
+   CHECK_ERROR(cudaEventRecord(start, 0));
+   CHECK_ERROR(cudaEventSynchronize(start));
+
+   unsigned *x = new unsigned(readnum);
+   unsigned *y = new unsigned(readnum);
+   unsigned *z = new unsigned(readnum);
+   unsigned *dev_x;
+   unsigned *dev_y;
+   unsigned *dev_z;
+   CHECK_STATE("debug1");
+   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(unsigned)));
+   CHECK_STATE("debug2");
+
+   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(unsigned)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(unsigned)));
+
    double *dev_xt;
    double *dev_yt;
    double *dev_zt;
-   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(int)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(int)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(int)));
+
+   CHECK_STATE("debug1");
    CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
+   CHECK_STATE("debug2");
    CHECK_ERROR(cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(double)));
    CHECK_ERROR(cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(double)));
+
    CHECK_ERROR(cudaMemcpy(dev_xt, xt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
    CHECK_ERROR(cudaMemcpy(dev_yt, yt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
    CHECK_ERROR(cudaMemcpy(dev_zt, zt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
@@ -262,9 +286,9 @@ int main(int argc, char **argv)
    int blocks = blockPerGrid(readnum, threads);
    cudaScale<<<blocks, threads>>>(dev_xt, dev_yt, dev_zt, dev_x, dev_y, dev_z, readnum, maxdim);
    CHECK_STATE("cudaScale call");
-   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(int), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(int), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(unsigned), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(unsigned), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(unsigned), cudaMemcpyDeviceToHost));
    CHECK_ERROR(cudaFree(dev_x));
    CHECK_ERROR(cudaFree(dev_y));
    CHECK_ERROR(cudaFree(dev_z));
@@ -272,29 +296,38 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaFree(dev_yt));
    CHECK_ERROR(cudaFree(dev_zt));
 
+   CHECK_ERROR(cudaEventRecord(stop, 0));
+   CHECK_ERROR(cudaEventSynchronize(stop));
+   float elapsedTime;
+   CHECK_ERROR(cudaEventElapsedTime(&elapsedTime, start, stop));
+   CHECK_ERROR(cudaEventDestroy(start));
+   CHECK_ERROR(cudaEventDestroy(stop));
+   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+
+   delete [] xt;
+   delete [] yt;
+   delete [] zt;
+
+   int ***grid;
+   grid = new int **[maxdim];
+   for (int i = 0; i < maxdim; ++i) {
+      grid[i] = new int *[maxdim];
+      for (int j = 0; j < maxdim; ++j) {
+         grid[i][j] = new int[maxdim];
+         for (int k = 0; k < maxdim; ++k)
+            grid[i][j][k] = 0;
+      }
+   }
+   std::cout << *(x + 0) << " " << *(y + 0) << " " << *(z + 0) << std::endl;
+   for (int i = 0; i < readnum; ++i) {
+      grid[*(x + i)][*(y + i)][*(z + i)] = i;
+   }
 
    std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
+   collision(x, y, z, vx, vy, vz, readnum, maxdim, grid, timestep * stepnum, ofresult);
 
-   /*
-   //   for (auto pp : ppv) {
-   //      std::cout << "*" << pp.no() << "*" << std::endl;
-   //      pp.print(std::cout);
-   //   }
-
-   std::size_t gdimx = axis_conv(grid_maxx, abs(grid_minx));
-   std::size_t gdimy = axis_conv(grid_maxy, abs(grid_miny));
-   std::size_t gdimz = axis_conv(grid_maxz, abs(grid_minz));
-
-   XYZ<int> offset(grid_maxx, grid_maxy, grid_maxz);
-   Grid grid(gdimx, gdimy, gdimz, offset);
-   grid.fill(ppv);
-
-
-
-
-   //   hit(ppv, grid, timestep * stepnum, ofresult, pv);
-   //   t = clock() - t;
+   t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
 
    std::cout << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
@@ -317,18 +350,20 @@ int main(int argc, char **argv)
 
    ofresult.close();
 
-   //   for (auto pp : ppv) {
-   //      std::cout << "*" << pp.no() << "*" << std::endl;
-   //      pp.print(std::cout);
-   //   }
-
-   //   std::cout << "Unnull: " << grid.unNullPtrNum() << std::endl;
-
-   //std::cout << maxx << " " << maxy << " " << maxz << std::endl;
-   //std::cout << p0.x << " " << p0.y << " " << p0.z << std::endl;
-   //std::cout << (pv[0]).xyz.x << " " << (pv[0]).xyz.y << " " << (pv[0]).xyz.z;
+   delete [] x;
+   delete [] y;
+   delete [] z;
+   delete [] vx;
+   delete [] vy;
+   delete [] vz;
+   for (int i = 0; i < maxdim; ++i) {
+      for (int j = 0; j < maxdim; ++j) {
+         delete[] grid[i][j];
+      }
+      delete[] grid[i];
+   }
+   delete[] grid;
    std::cout << std::endl;
-    */
    return 0;
 }
 
@@ -345,31 +380,193 @@ void init(std::vector<double *> &ppv, const std::vector<Particle> &pv)
    }
 }
 
+double scalev(double &num, const double &factor)
+{
+   return (num + num * factor);
+}
 
+void swapv(double *vx, double *vy, double *vz, int num1, int num2, double factor)
+{
+   double tvx, tvy, tvz;
+   if (vx[num1] + vy[num1] + vz[num1] < 1.0) {
+      tvx = scalev(vx[num1], factor);
+      tvy = scalev(vy[num1], factor);
+      tvz = scalev(vz[num1], factor);
+   }
+   else {
+      tvx = vx[num1];
+      tvy = vy[num1];
+      tvz = vz[num1];
+   }
+   if (vx[num2] + vy[num2] + vz[num2] < 1.0) {
+      vx[num1] = scalev(vx[num2], factor);
+      vy[num1] = scalev(vy[num2], factor);
+      vz[num1] = scalev(vz[num2], factor);
+   }
+   else {
+      vx[num1] = vx[num2];
+      vy[num1] = vy[num2];
+      vz[num1] = vz[num2];
+   }
+   vx[num2] = tvx;
+   vy[num2] = tvy;
+   vz[num2] = tvz;
+}
 
+bool isInGrid(const int &x, const int &y, const int &z, const int &gdim)
+{
+   return !( x > gdim || y > gdim || z > gdim);
+}
 
-/*
-   unsigned hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv)
-   {
+unsigned updatePosition(unsigned *x, unsigned *y, unsigned *z, double *vx, double *vy, double *vz, const int &num, const int &gdim, int ***grid, const unsigned long &time)
+{
+   double fix_step_length = 2.0;
+   double fix_speed = 0.2;
+   double fix_hit_v = 0.2;
+   while ((fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) * fix_step_length < 1.0)
+      fix_step_length += 2.0;
+   unsigned hit_num = 0;
+   unsigned long ttime = time;
+   if (!isInGrid(x[num], y[num], z[num], gdim))
+      runError("Particle out of bound", "update_position");
+   while (ttime--) {
+      int tx = x[num];
+      int ty = y[num];
+      int tz = z[num];
+      int fx = rint(vx[num] * fix_step_length);
+      int fy = rint(vy[num] * fix_step_length);
+      int fz = rint(vz[num] * fix_step_length);
+
+      tx += ((fx < 0 && abs(fx) > tx) ? 0 : fx);
+      ty += ((fy < 0 && abs(fy) > ty) ? 0 : fy);
+      tz += ((fz < 0 && abs(fz) > tz) ? 0 : fz);
+
+      if (tx >= gdim || tx < 0) {
+         ++hit_num;
+         tx -= ((fx < 0 && abs(fx) > tx) ? 0 : fx);
+         if (tx >= gdim || tx < 0) 
+            tx %= (gdim - 1);
+         if (vy[num] < 1.0 || vz[num] < 1.0) {
+            vy[num] += vx[num] * fix_speed;
+            vz[num] += vx[num] * fix_speed;
+         }
+         vx[num] = - vx[num];
+      }
+      if (ty >= gdim || ty < 0) {
+         ++hit_num;
+         ty -= ((fy < 0 && abs(fy) > ty) ? 0 : fy);
+         if (ty >= gdim || ty < 0) 
+            ty %= (gdim - 1);
+         if (vx[num] < 1.0 || vz[num] < 1.0){
+            vx[num] += vy[num] * fix_speed;
+            vz[num] += vy[num] * fix_speed;
+         } 
+         vy[num] = - vy[num];
+      }
+      if (tz >= gdim || tz < 0) {
+         ++hit_num;
+         tz -= ((fz < 0 && abs(fz) > tz) ? 0 : fz);
+         if (tz >= gdim || tz < 0) 
+            tz %= (gdim - 1);
+         if (vx[num] < 1.0 || vy[num] < 1.0) {
+            vy[num] += vz[num] * fix_speed;
+            vx[num] += vz[num] * fix_speed;
+         }
+         vz[num] = - vz[num];
+      }
+      if (grid[tx][ty][tz] == 0) {
+         grid[tx][ty][tz] = num;
+         grid[x[num]][y[num]][z[num]] = 0;
+         x[num] = tx;
+         y[num] = ty;
+         z[num] = tz;
+      }
+      else {
+         ++hit_num;
+         int tn = grid[tx][ty][tz];
+         swapv(vx, vy, vz, num, tn, fix_hit_v);
+         grid[x[num]][y[num]][z[num]] = 0;
+         x[num] = tx;
+         y[num] = ty;
+         z[num] = tz;
+         grid[tx][ty][tz] = num;
+         while (grid[tx][ty][tz] != 0) {
+            int tx_old = tx;
+            int ty_old = ty;
+            int tz_old = tz;
+            int fx = rint(vx[tn] * fix_step_length);
+            int fy = rint(vy[tn] * fix_step_length);
+            int fz = rint(vz[tn] * fix_step_length);
+
+            tx += ((fx < 0 && abs(fx) > tx) ? 0 : fx);
+            ty += ((fy < 0 && abs(fy) > ty) ? 0 : fy);
+            tz += ((fz < 0 && abs(fz) > tz) ? 0 : fz);
+
+            if (tx >= gdim || tx < 0) {
+               ++hit_num;
+               tx -= ((fx < 0 && abs(fx) > tx) ? 0 : fx);
+               if (tx >= gdim || tx < 0) 
+                  tx %= (gdim - 1);
+               if (vy[tn] < 1.0 || vz[tn] < 1.0) {
+                  vy[tn] += vx[tn] * fix_speed;
+                  vz[tn] += vx[tn] * fix_speed;
+               }
+               vx[tn] = - vx[tn];
+            }
+            if (ty >= gdim || ty < 0) {
+               ++hit_num;
+               ty -= ((fy < 0 && abs(fy) > ty) ? 0 : fy);
+               if (ty >= gdim || ty < 0) 
+                  ty %= (gdim - 1);
+               if (vx[tn] < 1.0 || vz[tn] < 1.0){
+                  vx[tn] += vy[tn] * fix_speed;
+                  vz[tn] += vy[tn] * fix_speed;
+               } 
+               vy[tn] = - vy[tn];
+            }
+            if (tz >= gdim || tz < 0) {
+               ++hit_num;
+               tz -= ((fz < 0 && abs(fz) > tz) ? 0 : fz);
+               if (tz >= gdim || tz < 0) 
+                  tz %= (gdim - 1);
+               if (vx[tn] < 1.0 || vy[tn] < 1.0) {
+                  vy[tn] += vz[tn] * fix_speed;
+                  vx[tn] += vz[tn] * fix_speed;
+               }
+               vz[tn] = - vz[tn];
+            }
+            if (tx_old == tx || ty_old == ty || tz_old == tz)
+               break;
+            if (grid[tx][ty][tz] != 0) {
+               int ttn = grid[tx][ty][tz];
+               swapv(vx, vy, vz, tn, ttn, fix_hit_v);
+               ++hit_num;
+            }
+         }
+         grid[tx][ty][tz] = tn;
+      }
+   }
+   return hit_num;
+}
+
+unsigned long long collision(unsigned *x, unsigned *y, unsigned *z, double *vx, double *vy, double *vz, const int &readnum, const int &gdim, int ***grid, const unsigned long &time, std::ostream &os)
+{
    unsigned long long total_hit = 0;
-   for (auto &pp : ppv) {
-   unsigned hit_times = pp.move(grid, time);
-   total_hit += hit_times;
-   std::cout << std::endl << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-   std::cout << "      Total hit times: " << total_hit << std::endl;
-   std::cout << "Particle current info: " << std::endl;
-   pp.print(std::cout);
+   for (int i = 0; i < readnum; ++i) {
+      unsigned hit_times = updatePosition(x, y, z, vx, vy, vz, i, maxdim, grid, time);
+      total_hit += hit_times;
+      std::cout << std::endl << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
+      std::cout << "      Total hit times: " << total_hit << std::endl;
+      std::cout << "Particle current info: " << std::endl;
 
-   os.setf(std::ios::scientific);
-   os.precision(19);
-   os << std::endl << "********************" << std::endl;
-   os << "Particle " << pp.no() << " hit times: " << hit_times << std::endl;
-   os << "Particle origin info: " << std::endl;
-   (pv[pp.no() - 1]).print(os);
-   os << "Particle current info: " << std::endl;
-   pp.print(os);
-   os << "Total hit times: " << total_hit << std::endl << std::endl;
+      os.setf(std::ios::scientific);
+      os.precision(19);
+      os << std::endl << "********************" << std::endl;
+      os << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
+      os << "Particle origin info: " << std::endl;
+      os << "Particle current info: " << std::endl;
+      os << "Total hit times: " << total_hit << std::endl << std::endl;
    }
    return total_hit;
-   }
- */
+}
+
