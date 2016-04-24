@@ -244,19 +244,16 @@ int main(int argc, char **argv)
    yt[readnum] = scal_y;
    zt[readnum] = scal_z;
 
-//   std::cout << vz[0] << std::endl;
-//   std::cout << xt[0] << std::endl;
-
    clock_t t;
    t = clock();
 
+   /*
    cudaEvent_t start, stop;
-   CHECK_STATE("cudaEvent1");
    CHECK_ERROR(cudaEventCreate(&start));
-   CHECK_STATE("cudaEvent2");
    CHECK_ERROR(cudaEventCreate(&stop));
    CHECK_ERROR(cudaEventRecord(start, 0));
    CHECK_ERROR(cudaEventSynchronize(start));
+   */
 
    int *x = new int[readnum];
    int *y = new int[readnum];
@@ -291,6 +288,7 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaFree(dev_yt));
    CHECK_ERROR(cudaFree(dev_zt));
 
+   /*
    CHECK_ERROR(cudaEventRecord(stop, 0));
    CHECK_ERROR(cudaEventSynchronize(stop));
    float elapsedTime;
@@ -298,6 +296,7 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaEventDestroy(start));
    CHECK_ERROR(cudaEventDestroy(stop));
    std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+   */
 
    delete [] xt;
    delete [] yt;
@@ -305,7 +304,6 @@ int main(int argc, char **argv)
 
    int gdim = maxdim * 2;
 
-   std::cout << gdim << std::endl;
    int ***grid;
    grid = new int **[gdim];
    for (int i = 0; i < gdim; ++i) {
@@ -317,21 +315,19 @@ int main(int argc, char **argv)
       }
    }
 
-//   std::cout << "readnum: " << readnum << std::endl;
    for (int i = 0; i < readnum; ++i) {
-//      std::cout << i << " : " << *(x + i) << " : " << *(y + i) << " : " << *(z + i) << std::endl;
       grid[*(x + i)][*(y + i)][*(z + i)] = i;
    }
 
-
    collision(x, y, z, vx, vy, vz, readnum, gdim, grid, timestep * stepnum, ofresult);
 
-   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
+//   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
    t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
 
-   std::cout << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
+   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+   std::cout << "Total time consumed: " << seconds << " seconds" << std::endl;
    std::cout << "Result output to file: " << ofs_result << std::endl;
 
    std::cout << std::endl << "************Config Info*************" << std::endl;
@@ -341,7 +337,7 @@ int main(int argc, char **argv)
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
-   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+   ofresult << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
    ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
    ofresult << std::endl << "************Config Info*************" << std::endl;
    ofresult << " Particle Num: " << particle_num << std::endl;
@@ -425,17 +421,14 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
    double fix_step_length = 2.0;
    double fix_speed = 0.2;
    double fix_hit_v = 0.2;
-   std::cout << fabs(vx[num]) << " : " << fabs(vy[num]) << " : " << fabs(vz[num]) << std::endl;
    if (0.0 == fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) {
       vx[num] = vy[num] = vz[num] = 0.8;
    }
    while ((fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) * fix_step_length < 1.0) {
       fix_step_length += 2.0;
    }
-   std::cout << x[num] << " : " << y[num] << " : " << z[num] << std::endl;
    unsigned hit_num = 0;
    unsigned long ttime = time;
-   //   std::cout << gdim << std::endl;
    if (!isInGrid(x[num], y[num], z[num], gdim))
       runError("Particle out of bound", "update_position");
    while (ttime--) {
@@ -567,14 +560,18 @@ unsigned long long collision(int *x, int *y, int *z, double *vx, double *vy, dou
       std::cout << std::endl << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
       std::cout << "      Total hit times: " << total_hit << std::endl;
       std::cout << "Particle current info: " << std::endl;
+      std::cout << x[i] << " " << y[i] << " " << z[i] << std::endl;
+      std::cout << vx[i] << " " << vy[i] << " " << vz[i] << std::endl;
 
       os.setf(std::ios::scientific);
-      os.precision(19);
+      os.precision(16);
       os << std::endl << "********************" << std::endl;
       os << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
       os << "Particle origin info: " << std::endl;
       os << "Particle current info: " << std::endl;
       os << "Total hit times: " << total_hit << std::endl << std::endl;
+      os << x[i] << " " << y[i] << " " << z[i] << std::endl;
+      os << vx[i] << " " << vy[i] << " " << vz[i] << std::endl;
    }
    return total_hit;
 }
