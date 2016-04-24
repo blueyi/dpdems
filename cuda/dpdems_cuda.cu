@@ -29,8 +29,8 @@ inline void checkCudaError(cudaError_t error, const char *file, const int line)
          cudaGetErrorString(error) << std::endl;
       exit(EXIT_FAILURE);
    }
-   else
-      std::cout << "cuda call success" << std::endl;
+//   else
+//      std::cout << "cuda call success" << std::endl;
 }
 
 inline void checkCudaState(const char *msg, const char *file, const int line)
@@ -42,8 +42,8 @@ inline void checkCudaState(const char *msg, const char *file, const int line)
          cudaGetErrorString(error) << std::endl;
       exit(EXIT_FAILURE);
    }
-   else
-      std::cout << "cuda state Success: " << msg << std::endl;
+//   else
+//      std::cout << "cuda state Success: " << msg << std::endl;
 }
 
 #define CHECK_ERROR(error) checkCudaError(error, __FILE__, __LINE__);
@@ -83,7 +83,7 @@ void setCudaDevice(int id)
 
 void init(std::vector<double *>&, const std::vector<Particle>&);
 
-__global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, unsigned *dev_x, unsigned *dev_y, unsigned *dev_z, int readnum, int maxdim)
+__global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *dev_x, int *dev_y, int *dev_z, int readnum, int maxdim)
 {
    int tid = threadIdx.x + blockIdx.x * blockDim.x;
    while (tid < readnum) {
@@ -97,8 +97,8 @@ __global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, unsign
 double scalev(double &, const double &);
 void swapv(double *, double *, double *, int, int, double);
 bool isInGrid(const int &, const int &, const int &, const int &);
-unsigned updatePosition(unsigned *, unsigned *, unsigned *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &);
-unsigned long long collision(unsigned *, unsigned *, unsigned *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &, std::ostream &);
+unsigned updatePosition(int *, int *, int *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &);
+unsigned long long collision(int *, int *, int *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &, std::ostream &);
 
 int main(int argc, char **argv)
 {
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 
 
    std::vector<Particle> pv(particle_num);
-   std::size_t readnum = 0;
+   int readnum = 0;
    for (auto &p : pv) {
       if (!inf)
          break;
@@ -232,50 +232,45 @@ int main(int argc, char **argv)
    scal_y = maxy == 0.0 ? 0.0 : (double)grid_limit.y / maxy;
    scal_z = maxz == 0.0 ? 0.0 : (double)grid_limit.z / maxz;
 
-   double *xt = new double(readnum + 1);
-   double *yt = new double(readnum + 1);
-   double *zt = new double(readnum + 1);
-   double *vx = new double(readnum);
-   double *vy = new double(readnum);
-   double *vz = new double(readnum);
+   double *xt = new double[readnum + 1];
+   double *yt = new double[readnum + 1];
+   double *zt = new double[readnum + 1];
+   double *vx = new double[readnum];
+   double *vy = new double[readnum];
+   double *vz = new double[readnum];
    std::vector<double *> ppvt{xt, yt, zt, vx, vy, vz};
    init(ppvt, pv);
    xt[readnum] = scal_x;
    yt[readnum] = scal_y;
    zt[readnum] = scal_z;
 
-   std::cout << vz[0] << std::endl;
-   std::cout << xt[0] << std::endl;
+//   std::cout << vz[0] << std::endl;
+//   std::cout << xt[0] << std::endl;
 
    clock_t t;
    t = clock();
 
    cudaEvent_t start, stop;
+   CHECK_STATE("cudaEvent1");
    CHECK_ERROR(cudaEventCreate(&start));
+   CHECK_STATE("cudaEvent2");
    CHECK_ERROR(cudaEventCreate(&stop));
    CHECK_ERROR(cudaEventRecord(start, 0));
    CHECK_ERROR(cudaEventSynchronize(start));
 
-   unsigned *x = new unsigned(readnum);
-   unsigned *y = new unsigned(readnum);
-   unsigned *z = new unsigned(readnum);
-   unsigned *dev_x;
-   unsigned *dev_y;
-   unsigned *dev_z;
-   CHECK_STATE("debug1");
-   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(unsigned)));
-   CHECK_STATE("debug2");
-
-   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(unsigned)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(unsigned)));
-
+   int *x = new int[readnum];
+   int *y = new int[readnum];
+   int *z = new int[readnum];
+   int *dev_x;
+   int *dev_y;
+   int *dev_z;
    double *dev_xt;
    double *dev_yt;
    double *dev_zt;
-
-   CHECK_STATE("debug1");
+   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(int)));
    CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
-   CHECK_STATE("debug2");
    CHECK_ERROR(cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(double)));
    CHECK_ERROR(cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(double)));
 
@@ -286,9 +281,9 @@ int main(int argc, char **argv)
    int blocks = blockPerGrid(readnum, threads);
    cudaScale<<<blocks, threads>>>(dev_xt, dev_yt, dev_zt, dev_x, dev_y, dev_z, readnum, maxdim);
    CHECK_STATE("cudaScale call");
-   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(unsigned), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(unsigned), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(unsigned), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(int), cudaMemcpyDeviceToHost));
    CHECK_ERROR(cudaFree(dev_x));
    CHECK_ERROR(cudaFree(dev_y));
    CHECK_ERROR(cudaFree(dev_z));
@@ -308,24 +303,30 @@ int main(int argc, char **argv)
    delete [] yt;
    delete [] zt;
 
+   int gdim = maxdim * 2;
+
+   std::cout << gdim << std::endl;
    int ***grid;
-   grid = new int **[maxdim];
-   for (int i = 0; i < maxdim; ++i) {
-      grid[i] = new int *[maxdim];
-      for (int j = 0; j < maxdim; ++j) {
-         grid[i][j] = new int[maxdim];
-         for (int k = 0; k < maxdim; ++k)
+   grid = new int **[gdim];
+   for (int i = 0; i < gdim; ++i) {
+      grid[i] = new int *[gdim];
+      for (int j = 0; j < gdim; ++j) {
+         grid[i][j] = new int[gdim];
+         for (int k = 0; k < gdim; ++k)
             grid[i][j][k] = 0;
       }
    }
-   std::cout << *(x + 0) << " " << *(y + 0) << " " << *(z + 0) << std::endl;
+
+//   std::cout << "readnum: " << readnum << std::endl;
    for (int i = 0; i < readnum; ++i) {
+//      std::cout << i << " : " << *(x + i) << " : " << *(y + i) << " : " << *(z + i) << std::endl;
       grid[*(x + i)][*(y + i)][*(z + i)] = i;
    }
 
-   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
-   collision(x, y, z, vx, vy, vz, readnum, maxdim, grid, timestep * stepnum, ofresult);
+   collision(x, y, z, vx, vy, vz, readnum, gdim, grid, timestep * stepnum, ofresult);
+
+   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
    t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
@@ -340,6 +341,7 @@ int main(int argc, char **argv)
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
+   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
    ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
    ofresult << std::endl << "************Config Info*************" << std::endl;
    ofresult << " Particle Num: " << particle_num << std::endl;
@@ -415,18 +417,25 @@ void swapv(double *vx, double *vy, double *vz, int num1, int num2, double factor
 
 bool isInGrid(const int &x, const int &y, const int &z, const int &gdim)
 {
-   return !( x > gdim || y > gdim || z > gdim);
+   return  (x < gdim && y < gdim && z < gdim);
 }
 
-unsigned updatePosition(unsigned *x, unsigned *y, unsigned *z, double *vx, double *vy, double *vz, const int &num, const int &gdim, int ***grid, const unsigned long &time)
+unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *vz, const int &num, const int &gdim, int ***grid, const unsigned long &time)
 {
    double fix_step_length = 2.0;
    double fix_speed = 0.2;
    double fix_hit_v = 0.2;
-   while ((fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) * fix_step_length < 1.0)
+   std::cout << fabs(vx[num]) << " : " << fabs(vy[num]) << " : " << fabs(vz[num]) << std::endl;
+   if (0.0 == fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) {
+      vx[num] = vy[num] = vz[num] = 0.8;
+   }
+   while ((fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) * fix_step_length < 1.0) {
       fix_step_length += 2.0;
+   }
+   std::cout << x[num] << " : " << y[num] << " : " << z[num] << std::endl;
    unsigned hit_num = 0;
    unsigned long ttime = time;
+   //   std::cout << gdim << std::endl;
    if (!isInGrid(x[num], y[num], z[num], gdim))
       runError("Particle out of bound", "update_position");
    while (ttime--) {
@@ -490,7 +499,7 @@ unsigned updatePosition(unsigned *x, unsigned *y, unsigned *z, double *vx, doubl
          y[num] = ty;
          z[num] = tz;
          grid[tx][ty][tz] = num;
-         while (grid[tx][ty][tz] != 0) {
+         if (grid[tx][ty][tz] != 0) {
             int tx_old = tx;
             int ty_old = ty;
             int tz_old = tz;
@@ -549,11 +558,11 @@ unsigned updatePosition(unsigned *x, unsigned *y, unsigned *z, double *vx, doubl
    return hit_num;
 }
 
-unsigned long long collision(unsigned *x, unsigned *y, unsigned *z, double *vx, double *vy, double *vz, const int &readnum, const int &gdim, int ***grid, const unsigned long &time, std::ostream &os)
+unsigned long long collision(int *x, int *y, int *z, double *vx, double *vy, double *vz, const int &readnum, const int &gdim, int ***grid, const unsigned long &time, std::ostream &os)
 {
    unsigned long long total_hit = 0;
    for (int i = 0; i < readnum; ++i) {
-      unsigned hit_times = updatePosition(x, y, z, vx, vy, vz, i, maxdim, grid, time);
+      unsigned hit_times = updatePosition(x, y, z, vx, vy, vz, i, gdim, grid, time);
       total_hit += hit_times;
       std::cout << std::endl << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
       std::cout << "      Total hit times: " << total_hit << std::endl;
