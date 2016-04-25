@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
    }
 
-   std::string ofs_result = ifileName + ".log";
+   std::string ofs_result = ifileName + "_" + std::to_string(particle_num) + ".log";
    std::ofstream ofresult(ofs_result);
 
    std::cout << " Particle Num: " << particle_num << std::endl;
@@ -179,6 +179,7 @@ int main(int argc, char **argv)
 
 
    hit(ppv, grid, timestep * stepnum, ofresult, pv);
+
    t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
 
