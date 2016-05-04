@@ -83,7 +83,7 @@ void setCudaDevice(int id)
 
 void init(std::vector<double *>&, const std::vector<Particle>&);
 
-__global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *dev_x, int *dev_y, int *dev_z, int readnum, int maxdim)
+__global__ void cudaScale_kernel(double *dev_xt, double *dev_yt, double *dev_zt, int *dev_x, int *dev_y, int *dev_z, int readnum, int maxdim)
 {
    int tid = threadIdx.x + blockIdx.x * blockDim.x;
    while (tid < readnum) {
@@ -93,6 +93,8 @@ __global__ void cudaScale(double *dev_xt, double *dev_yt, double *dev_zt, int *d
       tid += blockDim.x * gridDim.x;
    }
 }
+
+void cudaScale(int*, int*, int*, double *, double *, double *, const int&, const int&, const int&, const int&);
 
 double scalev(double &, const double &);
 void swapv(double *, double *, double *, int, int, double);
@@ -176,7 +178,7 @@ int main(int argc, char **argv)
 
    }
 
-   std::string ofs_result = ifileName + ".log";
+   std::string ofs_result = ifileName + "_" + std::to_string(particle_num) + "_cu.log";
    std::ofstream ofresult(ofs_result);
 
    std::cout << " Particle Num: " << particle_num << std::endl;
@@ -247,6 +249,12 @@ int main(int argc, char **argv)
    clock_t t;
    t = clock();
 
+   int threads = threadPerBlock;
+   int blocks = blockPerGrid(readnum, threads);
+   int *x = new int[readnum];
+   int *y = new int[readnum];
+   int *z = new int[readnum];
+
    /*
    cudaEvent_t start, stop;
    CHECK_ERROR(cudaEventCreate(&start));
@@ -255,38 +263,7 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaEventSynchronize(start));
    */
 
-   int *x = new int[readnum];
-   int *y = new int[readnum];
-   int *z = new int[readnum];
-   int *dev_x;
-   int *dev_y;
-   int *dev_z;
-   double *dev_xt;
-   double *dev_yt;
-   double *dev_zt;
-   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(int)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(int)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(int)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(double)));
-   CHECK_ERROR(cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(double)));
-
-   CHECK_ERROR(cudaMemcpy(dev_xt, xt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
-   CHECK_ERROR(cudaMemcpy(dev_yt, yt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
-   CHECK_ERROR(cudaMemcpy(dev_zt, zt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
-   int threads = threadPerBlock;
-   int blocks = blockPerGrid(readnum, threads);
-   cudaScale<<<blocks, threads>>>(dev_xt, dev_yt, dev_zt, dev_x, dev_y, dev_z, readnum, maxdim);
-   CHECK_STATE("cudaScale call");
-   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(int), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(int), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(int), cudaMemcpyDeviceToHost));
-   CHECK_ERROR(cudaFree(dev_x));
-   CHECK_ERROR(cudaFree(dev_y));
-   CHECK_ERROR(cudaFree(dev_z));
-   CHECK_ERROR(cudaFree(dev_xt));
-   CHECK_ERROR(cudaFree(dev_yt));
-   CHECK_ERROR(cudaFree(dev_zt));
+   cudaScale(x, y, z, xt, yt, zt, readnum, maxdim, threads, blocks);
 
    /*
    CHECK_ERROR(cudaEventRecord(stop, 0));
@@ -297,10 +274,6 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaEventDestroy(stop));
    std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
    */
-
-   delete [] xt;
-   delete [] yt;
-   delete [] zt;
 
    int gdim = maxdim * 2;
 
@@ -321,12 +294,13 @@ int main(int argc, char **argv)
 
    collision(x, y, z, vx, vy, vz, readnum, gdim, grid, timestep * stepnum, ofresult);
 
-//   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
-
    t = clock() - t;
    double seconds = (double)t / CLOCKS_PER_SEC;
+//   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
-   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+
+
+//   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
    std::cout << "Total time consumed: " << seconds << " seconds" << std::endl;
    std::cout << "Result output to file: " << ofs_result << std::endl;
 
@@ -337,7 +311,7 @@ int main(int argc, char **argv)
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
-   ofresult << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+//   ofresult << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
    ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
    ofresult << std::endl << "************Config Info*************" << std::endl;
    ofresult << " Particle Num: " << particle_num << std::endl;
@@ -347,6 +321,10 @@ int main(int argc, char **argv)
    ofresult << std::endl << "************End*************" << std::endl;
 
    ofresult.close();
+
+   delete [] xt;
+   delete [] yt;
+   delete [] zt;
 
    delete [] x;
    delete [] y;
@@ -576,3 +554,32 @@ unsigned long long collision(int *x, int *y, int *z, double *vx, double *vy, dou
    return total_hit;
 }
 
+void cudaScale(int *x, int *y, int *z, double *xt, double *yt, double *zt, const int &readnum, const int &maxdim, const int &threads, const int &blocks)
+{
+   int *dev_x;
+   int *dev_y;
+   int *dev_z;
+   double *dev_xt;
+   double *dev_yt;
+   double *dev_zt;
+   CHECK_ERROR(cudaMalloc((void**)&dev_x, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_y, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_z, readnum * sizeof(int)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_xt, (readnum + 1) * sizeof(double)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_yt, (readnum + 1) * sizeof(double)));
+   CHECK_ERROR(cudaMalloc((void**)&dev_zt, (readnum + 1) * sizeof(double)));
+   CHECK_ERROR(cudaMemcpy(dev_xt, xt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_yt, yt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   CHECK_ERROR(cudaMemcpy(dev_zt, zt, (readnum + 1) * sizeof(double), cudaMemcpyHostToDevice));
+   cudaScale_kernel<<<blocks, threads>>>(dev_xt, dev_yt, dev_zt, dev_x, dev_y, dev_z, readnum, maxdim);
+   CHECK_STATE("cudaScale call");
+   CHECK_ERROR(cudaMemcpy(x, dev_x, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(y, dev_y, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaMemcpy(z, dev_z, readnum * sizeof(int), cudaMemcpyDeviceToHost));
+   CHECK_ERROR(cudaFree(dev_x));
+   CHECK_ERROR(cudaFree(dev_y));
+   CHECK_ERROR(cudaFree(dev_z));
+   CHECK_ERROR(cudaFree(dev_xt));
+   CHECK_ERROR(cudaFree(dev_yt));
+   CHECK_ERROR(cudaFree(dev_zt));
+}
