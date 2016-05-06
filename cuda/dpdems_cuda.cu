@@ -5,8 +5,8 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "..\include\inputDatas.h"
-#include "..\include\config.h"
+#include "../include/inputDatas.h"
+#include "../include/config.h"
 #include <iostream>
 #include <fstream>
 #include <cctype>
