@@ -49,18 +49,18 @@ inline void checkCudaState(const char *msg, const char *file, const int line)
 #define CHECK_ERROR(error) checkCudaError(error, __FILE__, __LINE__);
 #define CHECK_STATE(msg) checkCudaState(msg, __FILE__, __LINE__);
 
-void print_device(const int id)
+void print_device(const int id, std::ostream &os)
 {
    cudaDeviceProp props;
    CHECK_ERROR(cudaGetDeviceProperties(&props, id));
-   std::cout << "---Property of currently device used---" << std::endl;
-   std::cout << "Device " << id << ": " << props.name << std::endl;
-   std::cout << "CUDA Capability: " << props.major << "." << props.minor
+   os << "---Property of currently device used---" << std::endl;
+   os << "Device " << id << ": " << props.name << std::endl;
+   os << "CUDA Capability: " << props.major << "." << props.minor
       << std::endl;
-   std::cout << "MultiProcessor count: " << props.multiProcessorCount << std::endl;
+   os << "MultiProcessor count: " << props.multiProcessorCount << std::endl;
 }
 
-void setCudaDevice(int id)
+void setCudaDevice(int id, std::ofstream &of)
 {
    int numDevice = 0;
    CHECK_ERROR(cudaGetDeviceCount(&numDevice));
@@ -78,7 +78,8 @@ void setCudaDevice(int id)
       }
    }
    CHECK_ERROR(cudaSetDevice(id));
-   print_device(id);
+   print_device(id, std::cout);
+   print_device(id, of);
 }
 
 void init(std::vector<double *>&, const std::vector<Particle>&);
@@ -210,7 +211,7 @@ int main(int argc, char **argv)
    pv.resize(particle_num);
 
    int device_id = 0;
-   setCudaDevice(device_id);
+   setCudaDevice(device_id, ofresult);
 
    double maxx, maxy, maxz;
    maxx = fabs((pv[0]).xyz.x);
