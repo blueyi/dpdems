@@ -417,7 +417,7 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
    unsigned long ttime = time;
    if (!isInGrid(x[num], y[num], z[num], gdim))
       runError("Particle out of bound", "update_position");
-   if (ttime--) {
+   while (ttime--) {
       int tx = x[num];
       int ty = y[num];
       int tz = z[num];
@@ -478,7 +478,7 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
          y[num] = ty;
          z[num] = tz;
          grid[tx][ty][tz] = num;
-         while (grid[tx][ty][tz] != 0) {
+         if (grid[tx][ty][tz] != 0) {
             int tx_old = tx;
             int ty_old = ty;
             int tz_old = tz;
