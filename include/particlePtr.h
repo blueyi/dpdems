@@ -5,7 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
-#include "../include/Grid.h"
+#include "../include/grid.h"
 #ifndef PARTICLEPTR_H
 #define PARTICLEPTR_H
 #include "../include/inputDatas.h"
