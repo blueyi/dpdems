@@ -21,6 +21,8 @@
 
 unsigned long long hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long time, std::ostream &os, const std::vector<Particle> &pv);
 
+void outputParCor(const std::vector<ParticlePtr> &ppv);
+
 int main(int argc, char **argv)
 {
    std::cout.setf(std::ios::scientific);
@@ -159,15 +161,19 @@ int main(int argc, char **argv)
    //    }
    auto ppb = ppv.begin();
 
+//   std::cout << "========" << std::endl;
+//   std::cout << scal_x << " = " << scal_y << " = " << scal_z << std::endl;
+//   std::cout << "========" << std::endl;
    for (auto pb = pv.begin(); pb != pv.end(); ++pb, ++ppb) {
       ppb->asign(*pb, scal_factor);
    }
-   (ppv.begin() + 1)->modify_cor(1, 1, 4);
+   //(ppv.begin() + 1)->modify_cor(1, 1, 4);
 
    //   for (auto pp : ppv) {
    //      std::cout << "*" << pp.no() << "*" << std::endl;
    //      pp.print(std::cout);
    //   }
+//   outputParCor(ppv);
 
    std::size_t gdimx = axis_conv(grid_maxx, abs(grid_minx));
    std::size_t gdimy = axis_conv(grid_maxy, abs(grid_miny));
@@ -240,4 +246,17 @@ unsigned long long hit(std::vector<ParticlePtr> &ppv, Grid &grid, unsigned long 
       os << "Total hit times: " << total_hit << std::endl << std::endl;
    }
    return total_hit;
+}
+
+void outputParCor(const std::vector<ParticlePtr> &ppv)
+{
+   std::ofstream of("currentParCor.txt");
+   int i = 0;
+   for (auto pv : ppv) {
+      of << "************" << std::endl;
+      of << i++ << " : " << std::endl;
+      pv.print(of);
+      of << std::endl;
+   }
+   of.close();
 }

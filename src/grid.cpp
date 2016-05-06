@@ -124,8 +124,10 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
                     tp.x -= ((fx < 0 && abs(fx) > x) ? 0 : fx);
                     if (tp.x >= gdimx || tp.x < 0) 
                         tp.x %= (gdimx-1);
+                    if (tpptr->v.y < 1.0 || tpptr->v.z < 1.0) {
                     tpptr->v.y += tpptr->v.y * fix_speed;
                     tpptr->v.z += tpptr->v.z * fix_speed;
+                    }
                     tpptr->v.x = -tpptr->v.x;
                     hit_num++;
                 }
@@ -133,8 +135,10 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
                     tp.y -= ((fy < 0 && abs(fy) > y) ? 0 : fy);
                     if (tp.y >= gdimy || tp.y < 0) 
                         tp.y %= (gdimy - 1);
+                    if (tpptr->v.x < 1.0 || tpptr->v.z < 1.0){
                     tpptr->v.x += tpptr->v.x * fix_speed;
                     tpptr->v.z += tpptr->v.z * fix_speed;
+                    }
                     tpptr->v.y = -tpptr->v.y;
                     hit_num++;
                 }
@@ -142,8 +146,10 @@ unsigned Grid::update_position(ParticlePtr &pp, unsigned long time)
                     tp.z -= ((fz < 0 && abs(fz) > z) ? 0 : fz);
                     if (tp.z >= gdimz || tp.z < 0) 
                         tp.z %= (gdimz - 1);
+                    if (tpptr->v.x < 1.0 || tpptr->v.y < 1.0) {
                     tpptr->v.y += tpptr->v.y * fix_speed;
                     tpptr->v.x += tpptr->v.x * fix_speed;
+                    }
                     tpptr->v.z = -tpptr->v.z;
                     hit_num++;
                 }

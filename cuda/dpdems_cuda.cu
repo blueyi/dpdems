@@ -88,9 +88,9 @@ __global__ void cudaScale_kernel(double *dev_xt, double *dev_yt, double *dev_zt,
 {
    int tid = threadIdx.x + blockIdx.x * blockDim.x;
    while (tid < readnum) {
-      dev_x[tid] = dev_xt[tid] * dev_xt[readnum] + maxdim;
-      dev_y[tid] = dev_yt[tid] * dev_yt[readnum] + maxdim;
-      dev_z[tid] = dev_zt[tid] * dev_zt[readnum] + maxdim;
+      dev_x[tid] = (int)(dev_xt[tid] * dev_xt[readnum]) + maxdim;
+      dev_y[tid] = (int)(dev_yt[tid] * dev_yt[readnum]) + maxdim;
+      dev_z[tid] = (int)(dev_zt[tid] * dev_zt[readnum]) + maxdim;
       tid += blockDim.x * gridDim.x;
    }
 }
@@ -103,6 +103,7 @@ bool isInGrid(const int &, const int &, const int &, const int &);
 unsigned updatePosition(int *, int *, int *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &);
 unsigned long long collision(int *, int *, int *, double *, double *, double *, const int &, const int &, int ***, const unsigned long &, std::ostream &);
 
+void outputCurrentCor(int *x, int *y, int *z, int parNum);
 int main(int argc, char **argv)
 {
    std::cout.setf(std::ios::scientific);
@@ -231,9 +232,9 @@ int main(int argc, char **argv)
 
    XYZ<int> grid_limit(grid_maxx - 1, grid_maxy - 1, grid_maxz - 1);
    double scal_x, scal_y, scal_z;
-   scal_x = maxx == 0.0 ? 0.0 : (double)grid_limit.x / maxx;
-   scal_y = maxy == 0.0 ? 0.0 : (double)grid_limit.y / maxy;
-   scal_z = maxz == 0.0 ? 0.0 : (double)grid_limit.z / maxz;
+   scal_x = (maxx == 0.0 ? 0.0 : (double)grid_limit.x / maxx);
+   scal_y = (maxy == 0.0 ? 0.0 : (double)grid_limit.y / maxy);
+   scal_z = (maxz == 0.0 ? 0.0 : (double)grid_limit.z / maxz);
 
    double *xt = new double[readnum + 1];
    double *yt = new double[readnum + 1];
@@ -247,6 +248,10 @@ int main(int argc, char **argv)
    yt[readnum] = scal_y;
    zt[readnum] = scal_z;
 
+//   std::cout << "========" << std::endl;
+//   std::cout << scal_x << " = " << scal_y << " = " << scal_z << std::endl;
+//   std::cout << maxx << " = " << maxy << " = " << maxz << std::endl;
+//   std::cout << "========" << std::endl;
    clock_t t;
    t = clock();
 
@@ -275,6 +280,8 @@ int main(int argc, char **argv)
    CHECK_ERROR(cudaEventDestroy(stop));
    std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
    */
+
+//   outputCurrentCor(x, y, z, readnum);
 
    int gdim = maxdim * 2;
 
@@ -359,7 +366,7 @@ void init(std::vector<double *> &ppv, const std::vector<Particle> &pv)
 
 double scalev(double &num, const double &factor)
 {
-   return (num + num * factor);
+   return (num + factor);
 }
 
 void swapv(double *vx, double *vy, double *vz, int num1, int num2, double factor)
@@ -400,9 +407,9 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
    double fix_step_length = 2.0;
    double fix_speed = 0.2;
    double fix_hit_v = 0.2;
-   if (0.0 == fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) {
-      vx[num] = vy[num] = vz[num] = 0.8;
-   }
+//   if (0.0 == fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) {
+//      vx[num] = vy[num] = vz[num] = 0.8;
+//   }
    while ((fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) * fix_step_length < 1.0) {
       fix_step_length += 2.0;
    }
@@ -410,7 +417,7 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
    unsigned long ttime = time;
    if (!isInGrid(x[num], y[num], z[num], gdim))
       runError("Particle out of bound", "update_position");
-   while (ttime--) {
+   if (ttime--) {
       int tx = x[num];
       int ty = y[num];
       int tz = z[num];
@@ -471,7 +478,7 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
          y[num] = ty;
          z[num] = tz;
          grid[tx][ty][tz] = num;
-         if (grid[tx][ty][tz] != 0) {
+         while (grid[tx][ty][tz] != 0) {
             int tx_old = tx;
             int ty_old = ty;
             int tz_old = tz;
@@ -516,7 +523,7 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
                }
                vz[tn] = - vz[tn];
             }
-            if (tx_old == tx || ty_old == ty || tz_old == tz)
+            if (tx_old == tx && ty_old == ty && tz_old == tz)
                break;
             if (grid[tx][ty][tz] != 0) {
                int ttn = grid[tx][ty][tz];
@@ -539,18 +546,18 @@ unsigned long long collision(int *x, int *y, int *z, double *vx, double *vy, dou
       std::cout << std::endl << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
       std::cout << "      Total hit times: " << total_hit << std::endl;
       std::cout << "Particle current info: " << std::endl;
-      std::cout << x[i] << " " << y[i] << " " << z[i] << std::endl;
-      std::cout << vx[i] << " " << vy[i] << " " << vz[i] << std::endl;
+      std::cout << x[i] << "\t" << y[i] << "\t" << z[i] << std::endl;
+      std::cout << vx[i] << "\t" << vy[i] << "\t" << vz[i] << std::endl;
 
       os.setf(std::ios::scientific);
       os.precision(16);
       os << std::endl << "********************" << std::endl;
       os << "Particle " << i + 1 << " hit times: " << hit_times << std::endl;
-      os << "Particle origin info: " << std::endl;
-      os << "Particle current info: " << std::endl;
       os << "Total hit times: " << total_hit << std::endl << std::endl;
-      os << x[i] << " " << y[i] << " " << z[i] << std::endl;
-      os << vx[i] << " " << vy[i] << " " << vz[i] << std::endl;
+      //os << "Particle origin info: " << std::endl;
+      os << "Particle current info: " << std::endl;
+      os << x[i] << "\t" << y[i] << "\t" << z[i] << std::endl;
+      os << vx[i] << "\t" << vy[i] << "\t" << vz[i] << std::endl;
    }
    return total_hit;
 }
@@ -584,3 +591,15 @@ void cudaScale(int *x, int *y, int *z, double *xt, double *yt, double *zt, const
    CHECK_ERROR(cudaFree(dev_yt));
    CHECK_ERROR(cudaFree(dev_zt));
 }
+
+void outputCurrentCor(int *x, int *y, int *z, int parNum)
+{
+   std::ofstream of("Partic_cor.txt");
+   for (int i = 0; i < parNum; ++i) {
+      of << "***************" << std::endl;
+      of << i << ": " << std::endl;
+      of << x[i] - 100 << "\t" << y[i] - 100 << "\t" << z[i] - 100 << std::endl << std::endl;
+   }
+   of.close();
+}
+

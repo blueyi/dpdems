@@ -1,5 +1,5 @@
 inipol.002	dPath	//后面是注释，可有可无，但前面每个参数的值必须要与名称对应，各行可以不按顺序
-inputdatas.txt	dataFile	//输入数据文件
+inputdatas_1000.txt	dataFile	//输入数据文件
 1000	timestep	//计算时间步
 100	maxdim		//网格大小-maxdim~+maxdim
 100	stepnum		//计算多少个时间步
