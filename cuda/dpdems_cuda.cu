@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 
    }
 
-   std::string ofs_result = ifileName + "_" + std::to_string(particle_num) + "_cu.log";
+   std::string ofs_result = "gpu_" + ifileName + "_" + std::to_string(particle_num) + ".log";
    std::ofstream ofresult(ofs_result);
 
    std::cout << " Particle Num: " << particle_num << std::endl;
