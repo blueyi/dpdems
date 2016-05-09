@@ -38,7 +38,7 @@ int main(int argc, char **argv)
    double scale_gpu_proportion = oFInterval;
    if (scale_gpu_proportion <= 0.0 || scale_gpu_proportion > 1.0) {
       std::cout << "Gpu proportion must range in (0.0, 1.0]" << std::endl;
-      return 0;
+      return -1;
    }
    std::string ifileName = dataFile;
    std::ifstream inf;
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
    inf.open(ifileName);
    if (!inf) {
       std::cout << "File Error: " << ifileName << std::endl;
-      return 0;
+      return -1;
    }
    unsigned particle_num = 0;
    double ttime0, dt, elasticmod, poissonp, rho, xlen, ylen, zlen;
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
    if ( 3 > maxdim) {
       std::cout << "maxdim too small" << std::endl;
       std::cout << "Execute terminate!" << std::endl;
-      return 0;
+      return -1;
    }
 
    if (10000000 < timestep * stepnum) {
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
       }
       if (str[0] != 'y') {
          std::cout << "Execute terminate!" << std::endl;
-         return 0;
+         return -1;
       }
    }
 
