@@ -4,6 +4,7 @@
 *.o
 *.obj
 *.exp
+*.dat
 
 # Precompiled Headers
 *.gch

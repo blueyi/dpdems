@@ -28,20 +28,31 @@ int main(int argc, char **argv)
    std::cout.setf(std::ios::scientific);
    std::cout.precision(19);
    std::string configFile = "config.txt";
+   unsigned specifyParNum = 0;
 
    if (ini_conf(configFile.c_str()))
       std::cout << "Success" << std::endl;
    else 
       std::cout << "ini_conf error!" << std::endl;
 
+   double scale_gpu_proportion = oFInterval;
+   if (scale_gpu_proportion <= 0.0 || scale_gpu_proportion > 1.0) {
+      std::cout << "Gpu proportion must range in (0.0, 1.0]" << std::endl;
+      return 0;
+   }
    std::string ifileName = dataFile;
    std::ifstream inf;
    if (2 > argc){
       std::cout << "Use the default input file name from config.txt: inputdatas.txt" << std::endl;
    }
    else {
-      ifileName = argv[1];
-      std::cout << "Use input file: " << ifileName << std::endl;
+      std::string t = argv[1];
+      if (t.find(".") != std::string::npos) {
+         ifileName = argv[1];
+         std::cout << "Use input file: " << ifileName << std::endl;
+      }
+      else 
+         specifyParNum = std::stoul(t);
    }
    inf.open(ifileName);
    if (!inf) {
@@ -52,6 +63,9 @@ int main(int argc, char **argv)
    double ttime0, dt, elasticmod, poissonp, rho, xlen, ylen, zlen;
    inf >> particle_num >> ttime0 >> dt >> elasticmod >>
       poissonp >> rho >> xlen >> ylen >> zlen;
+
+   if (specifyParNum != 0)
+      particle_num = specifyParNum;
 
    if ( 3 > maxdim) {
       std::cout << "maxdim too small" << std::endl;
@@ -161,9 +175,9 @@ int main(int argc, char **argv)
    //    }
    auto ppb = ppv.begin();
 
-//   std::cout << "========" << std::endl;
-//   std::cout << scal_x << " = " << scal_y << " = " << scal_z << std::endl;
-//   std::cout << "========" << std::endl;
+   //   std::cout << "========" << std::endl;
+   //   std::cout << scal_x << " = " << scal_y << " = " << scal_z << std::endl;
+   //   std::cout << "========" << std::endl;
    for (auto pb = pv.begin(); pb != pv.end(); ++pb, ++ppb) {
       ppb->asign(*pb, scal_factor);
    }
@@ -173,7 +187,7 @@ int main(int argc, char **argv)
    //      std::cout << "*" << pp.no() << "*" << std::endl;
    //      pp.print(std::cout);
    //   }
-//   outputParCor(ppv);
+   //   outputParCor(ppv);
 
    std::size_t gdimx = axis_conv(grid_maxx, abs(grid_minx));
    std::size_t gdimy = axis_conv(grid_maxy, abs(grid_miny));
@@ -183,13 +197,38 @@ int main(int argc, char **argv)
    Grid grid(gdimx, gdimy, gdimz, offset);
    grid.fill(ppv);
 
+   clock_t tc = clock();
+   double seconds = (double)(tc - t) / CLOCKS_PER_SEC;
+//   std::cout << "==" << seconds << "==" << std::endl;
 
    hit(ppv, grid, timestep * stepnum, ofresult, pv);
 
-   t = clock() - t;
-   double seconds = (double)t / CLOCKS_PER_SEC;
+   double common_time = (double)(clock() - tc) / CLOCKS_PER_SEC;
+   double scale_seconds, common_scale;
+   if (scale_gpu_proportion < 1.0) {
+      scale_seconds = common_time * scale_gpu_proportion / (1.0 - scale_gpu_proportion);
+      common_scale = scale_seconds / seconds;
+   }
+   else {
+      scale_seconds = seconds;
+      common_scale = 1.0;
+      common_time = 0.0;
+   }
+   //   common_time = (1.0 / scale_gpu_proportion - 1.0) * seconds;
 
-   std::cout << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
+   std::string share_file = "share_" + ifileName + "_" + std::to_string(particle_num) + ".dat";
+   std::ofstream oShare(share_file);
+   if (!oShare) {
+      std::cout << "Output File Error: " << share_file << std::endl;
+      return 0;
+   }
+   oShare.precision(12);
+   oShare << common_time << "\t" << common_scale << std::endl;
+   oShare.close();
+
+   double total_Time = scale_seconds + common_time;
+
+   std::cout << std::endl << "Total time consumed: " << total_Time << " seconds" << std::endl;
    std::cout << "Result output to file: " << ofs_result << std::endl;
 
    std::cout << std::endl << "************Config Info*************" << std::endl;
@@ -199,7 +238,7 @@ int main(int argc, char **argv)
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
-   ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
+   ofresult << std::endl << "Total time consumed: " << total_Time << " seconds" << std::endl;
    ofresult << std::endl << "************Config Info*************" << std::endl;
    ofresult << " Particle Num: " << particle_num << std::endl;
    ofresult << "    Time step: " << timestep << std::endl;

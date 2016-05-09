@@ -109,6 +109,7 @@ int main(int argc, char **argv)
    std::cout.setf(std::ios::scientific);
    std::cout.precision(19);
    std::string configFile = "config.txt";
+   unsigned specifyParNum = 0;
 
    if (ini_conf(configFile.c_str()))
       std::cout << "Success" << std::endl;
@@ -121,8 +122,13 @@ int main(int argc, char **argv)
       std::cout << "Use the default input file name from config.txt: inputdatas.txt" << std::endl;
    }
    else {
-      ifileName = argv[1];
-      std::cout << "Use input file: " << ifileName << std::endl;
+      std::string t = argv[1];
+      if (t.find(".") != std::string::npos) {
+         ifileName = argv[1];
+         std::cout << "Use input file: " << ifileName << std::endl;
+      }
+      else 
+         specifyParNum = std::stoul(t);
    }
    inf.open(ifileName);
    if (!inf) {
@@ -133,6 +139,9 @@ int main(int argc, char **argv)
    double ttime0, dt, elasticmod, poissonp, rho, xlen, ylen, zlen;
    inf >> particle_num >> ttime0 >> dt >> elasticmod >>
       poissonp >> rho >> xlen >> ylen >> zlen;
+
+   if (specifyParNum != 0)
+      particle_num = specifyParNum;
 
    if ( 3 > maxdim) {
       std::cout << "maxdim too small" << std::endl;
@@ -248,10 +257,10 @@ int main(int argc, char **argv)
    yt[readnum] = scal_y;
    zt[readnum] = scal_z;
 
-//   std::cout << "========" << std::endl;
-//   std::cout << scal_x << " = " << scal_y << " = " << scal_z << std::endl;
-//   std::cout << maxx << " = " << maxy << " = " << maxz << std::endl;
-//   std::cout << "========" << std::endl;
+   //   std::cout << "========" << std::endl;
+   //   std::cout << scal_x << " = " << scal_y << " = " << scal_z << std::endl;
+   //   std::cout << maxx << " = " << maxy << " = " << maxz << std::endl;
+   //   std::cout << "========" << std::endl;
    clock_t t;
    t = clock();
 
@@ -262,26 +271,48 @@ int main(int argc, char **argv)
    int *z = new int[readnum];
 
    /*
-   cudaEvent_t start, stop;
-   CHECK_ERROR(cudaEventCreate(&start));
-   CHECK_ERROR(cudaEventCreate(&stop));
-   CHECK_ERROR(cudaEventRecord(start, 0));
-   CHECK_ERROR(cudaEventSynchronize(start));
-   */
+      cudaEvent_t start, stop;
+      CHECK_ERROR(cudaEventCreate(&start));
+      CHECK_ERROR(cudaEventCreate(&stop));
+      CHECK_ERROR(cudaEventRecord(start, 0));
+      CHECK_ERROR(cudaEventSynchronize(start));
+    */
 
    cudaScale(x, y, z, xt, yt, zt, readnum, maxdim, threads, blocks);
 
    /*
-   CHECK_ERROR(cudaEventRecord(stop, 0));
-   CHECK_ERROR(cudaEventSynchronize(stop));
-   float elapsedTime;
-   CHECK_ERROR(cudaEventElapsedTime(&elapsedTime, start, stop));
-   CHECK_ERROR(cudaEventDestroy(start));
-   CHECK_ERROR(cudaEventDestroy(stop));
-   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
-   */
+      CHECK_ERROR(cudaEventRecord(stop, 0));
+      CHECK_ERROR(cudaEventSynchronize(stop));
+      float elapsedTime;
+      CHECK_ERROR(cudaEventElapsedTime(&elapsedTime, start, stop));
+      CHECK_ERROR(cudaEventDestroy(start));
+      CHECK_ERROR(cudaEventDestroy(stop));
+      std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+    */
 
-//   outputCurrentCor(x, y, z, readnum);
+   //   outputCurrentCor(x, y, z, readnum);
+
+   t = clock() - t;
+   double seconds = (double)t / CLOCKS_PER_SEC;
+   std::string share_file = "share_" + ifileName + "_" + std::to_string(particle_num) + ".dat";
+   std::ifstream iShare(share_file);
+   if (!iShare) {
+      std::cout << "File Error: " << share_file << std::endl;
+      std::cout << "Check is your CPU programme has run finished ?" << std::endl;
+      return 0;
+   }
+   double common_time = 0.0;
+   double common_scale = 0.0;
+   std::string str;
+   if (getline(iShare, str)) {
+      while (str.empty() || str == "\r") getline(iShare, str);
+   }
+   iShare.close();
+   std::istringstream iss(str);
+   iss >> common_time >> common_scale;
+   double scale_seconds = seconds * common_scale;
+   double total_Time = scale_seconds + common_time;
+//   std::cout << total_Time << " : " << common_time << " : " << seconds << std::endl;
 
    int gdim = maxdim * 2;
 
@@ -302,14 +333,14 @@ int main(int argc, char **argv)
 
    collision(x, y, z, vx, vy, vz, readnum, gdim, grid, timestep * stepnum, ofresult);
 
-   t = clock() - t;
-   double seconds = (double)t / CLOCKS_PER_SEC;
-//   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
+//   t = clock() - t;
+//   double seconds = (double)t / CLOCKS_PER_SEC;
+   //   std::cout << x[0] << " : " << y[0] << " : " << z[0] << std::endl;
 
 
 
-//   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
-   std::cout << "Total time consumed: " << seconds << " seconds" << std::endl;
+   //   std::cout << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+   std::cout << "Total time consumed: " << total_Time << " seconds" << std::endl;
    std::cout << "Result output to file: " << ofs_result << std::endl;
 
    std::cout << std::endl << "************Config Info*************" << std::endl;
@@ -319,8 +350,8 @@ int main(int argc, char **argv)
    std::cout << "Time step num: " << stepnum << std::endl;
    std::cout << std::endl << "************End*************" << std::endl;
 
-//   ofresult << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
-   ofresult << std::endl << "Total time consumed: " << seconds << " seconds" << std::endl;
+   //   ofresult << "CUDA elapsed: " << elapsedTime / 1000.0 << std::endl;
+   ofresult << std::endl << "Total time consumed: " << total_Time << " seconds" << std::endl;
    ofresult << std::endl << "************Config Info*************" << std::endl;
    ofresult << " Particle Num: " << particle_num << std::endl;
    ofresult << "    Time step: " << timestep << std::endl;
@@ -407,9 +438,9 @@ unsigned updatePosition(int *x, int *y, int *z, double *vx, double *vy, double *
    double fix_step_length = 2.0;
    double fix_speed = 0.2;
    double fix_hit_v = 0.2;
-//   if (0.0 == fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) {
-//      vx[num] = vy[num] = vz[num] = 0.8;
-//   }
+   //   if (0.0 == fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) {
+   //      vx[num] = vy[num] = vz[num] = 0.8;
+   //   }
    while ((fabs(vx[num]) + fabs(vy[num]) + fabs(vz[num])) * fix_step_length < 1.0) {
       fix_step_length += 2.0;
    }
